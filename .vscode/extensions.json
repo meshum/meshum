@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "JakeBecker.elixir-ls",
+        "benvp.vscode-hex-pm-intellisense",
+        "phoenixframework.phoenix",
+        "saratravi.elixir-formatter",
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml"
+    ]
+}
