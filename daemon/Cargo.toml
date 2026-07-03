@@ -2,5 +2,11 @@
 name = "meshum_daemon"
 version = "0.1.0"
 edition = "2024"
+license-file = "../LICENSE.md"
+readme = "README.md"
+rust-version = "1.96.0"
+publish = false
+repository = "https://github.com/meshum/meshum"
+authors = ["Wannes Gennar <wannes@elixus.be>"]
 
 [dependencies]
