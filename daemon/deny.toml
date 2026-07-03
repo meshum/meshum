@@ -44,27 +44,42 @@ ignore = [
 # More documentation for the licenses section can be found here:
 # https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html
 [licenses]
+# Meshum itself is AGPL-3.0, but we also want to be able to sell commercial
+# (non-AGPL) licenses for our own code. That means every dependency must be
+# permissive, or at most file-level copyleft (MPL-2.0): a (A)GPL dependency
+# would force the combined work under (A)GPL and make dual-licensing
+# impossible, and LGPL is impractical with Rust's static linking (relinkable
+# object files would have to be shipped).
+#
+# cargo-deny denies any license NOT in this list, so GPL/AGPL/LGPL/SSPL and
+# friends are rejected automatically.
+#
 # List of explicitly allowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses
 # [possible values: any SPDX 3.11 short identifier (+ optional exception)].
 allow = [
-  # "MIT",
-  # "MIT-0",
-  # "Apache-2.0",
-  #    "Apache-2.0 WITH LLVM-exception",
-  #    "BSD-2-Clause",
-  # "BSD-3-Clause",
-  # "ISC",
-  # "Zlib",
-  # "Unicode-3.0",
-  #    "CC0-1.0",
-  # "MPL-2.0",
-  #    "LGPL-2.1-or-later",
-  #    "LGPL-3.0-or-later",
-  #    "GPL-3.0-only",
-  #    "GPL-3.0-or-later",
-  # "CDLA-Permissive-2.0",
+  "MIT",
+  "MIT-0",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "0BSD",
+  "ISC",
+  "Zlib",
+  "Unicode-3.0",
+  "Unlicense",
+  # CC0 lacks an explicit patent grant, but is widely used for small Rust
+  # crates and fine to combine with proprietary licensing.
+  "CC0-1.0",
+  # MPL-2.0 is file-level copyleft: only modifications to the MPL-licensed
+  # files themselves must be published, it does not extend to our code.
+  "MPL-2.0",
+  "CDLA-Permissive-2.0",
 ]
+# Don't warn about allowed licenses no dependency currently uses; the list
+# above is the forward-looking policy, not a mirror of the current tree.
+unused-allowed-license = "allow"
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
 # canonical license text of a valid SPDX license file.

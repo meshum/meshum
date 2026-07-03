@@ -1,0 +1,94 @@
+name: Server
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'server/**'
+      - '.github/workflows/server.yml'
+  pull_request:
+    paths:
+      - 'server/**'
+      - '.github/workflows/server.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  commits:
+    name: Commit messages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just,committed
+
+      - name: Check commit messages
+        run: just commits
+
+  check:
+    name: mix check
+    runs-on: ubuntu-latest
+    # The test suite expects postgres:postgres on localhost:5432 (config/test.exs).
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        # Make GitHub wait until the database accepts connections before
+        # starting the job.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: erlef/setup-beam@v1
+        id: beam
+        with:
+          otp-version: '29'
+          elixir-version: '1.20.2'
+
+      # Also caches the dialyzer PLTs, which live under _build. The commit
+      # SHA in the key makes every run save an updated cache (an exact hit
+      # is never re-saved), so incremental compilation of our own apps
+      # carries over between runs; restore-keys fall back to the most
+      # recent cache for the same BEAM/lockfile.
+      - uses: actions/cache@v5
+        with:
+          path: |
+            server/deps
+            server/_build
+          key: mix-dev-${{ runner.os }}-otp${{ steps.beam.outputs.otp-version }}-ex${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('server/mix.lock') }}-${{ github.sha }}
+          restore-keys: |
+            mix-dev-${{ runner.os }}-otp${{ steps.beam.outputs.otp-version }}-ex${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('server/mix.lock') }}-
+            mix-dev-${{ runner.os }}-otp${{ steps.beam.outputs.otp-version }}-ex${{ steps.beam.outputs.elixir-version }}-
+
+      - name: Install hex & rebar
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+
+      - name: Fetch dependencies
+        run: mix deps.get
+
+      # Runs compiler (warnings as errors), formatter, credo, dialyzer,
+      # sobelow, unused deps and ex_unit via ex_check.
+      - name: Run checks
+        run: mix check

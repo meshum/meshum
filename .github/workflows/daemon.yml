@@ -1,0 +1,172 @@
+name: Daemon
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'daemon/**'
+      - 'justfile'
+      - '.github/workflows/daemon.yml'
+  pull_request:
+    paths:
+      - 'daemon/**'
+      - 'justfile'
+      - '.github/workflows/daemon.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daemon-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  commits:
+    name: Commit messages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just,committed
+
+      - name: Check commit messages
+        run: just commits
+
+  fmt:
+    name: Formatting (rustfmt)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust toolchain
+        working-directory: daemon
+        run: rustup toolchain install
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just
+
+      - run: just fmt_rust
+
+  taplo:
+    name: Formatting (taplo)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just,taplo-cli
+
+      - run: just taplo_rust
+
+  check:
+    name: Lints (cargo check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust toolchain
+        working-directory: daemon
+        run: rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: daemon
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just
+
+      - run: just check_rust
+
+  clippy:
+    name: Lints (clippy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust toolchain
+        working-directory: daemon
+        run: rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: daemon
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just
+
+      - run: just clippy_rust
+
+  machete:
+    name: Dependencies (machete)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just,cargo-machete
+
+      - run: just machete_rust
+
+  deny:
+    name: Dependencies (deny)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # cargo-deny resolves the dependency graph through cargo.
+      - name: Install Rust toolchain
+        working-directory: daemon
+        run: rustup toolchain install
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just,cargo-deny
+
+      - run: just deny_rust
+
+  audit:
+    name: Dependencies (audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just,cargo-audit
+
+      - run: just audit_rust
+
+  test:
+    name: Tests (nextest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust toolchain
+        working-directory: daemon
+        run: rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: daemon
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just,cargo-nextest
+
+      # The 'fast' profile disables optimisation for quicker CI builds.
+      - run: just test_rust fast

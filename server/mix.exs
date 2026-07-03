@@ -9,7 +9,21 @@ defmodule Meshum.Umbrella.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
-      listeners: [Phoenix.CodeReloader]
+      listeners: [Phoenix.CodeReloader],
+      releases: releases()
+    ]
+  end
+
+  # Umbrella projects must define their releases explicitly; the release
+  # version is inherited from the umbrella project version above.
+  defp releases do
+    [
+      meshum_gateway: [
+        applications: [meshum_gateway: :permanent]
+      ],
+      meshum_web: [
+        applications: [meshum_web: :permanent]
+      ]
     ]
   end
 

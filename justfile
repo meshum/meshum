@@ -5,23 +5,45 @@ default:
 
 rust: format_rust lint_rust dependencies_rust test_rust
 
+[working-directory: 'server']
+elixir:
+    mix check
+
 # Check if Rust code is formatted correctly
+format_rust: fmt_rust taplo_rust
+
 [working-directory: 'daemon']
-format_rust:
+fmt_rust:
     cargo fmt --check
+
+[working-directory: 'daemon']
+taplo_rust:
     taplo check
 
 # Run static analysis
+lint_rust: check_rust clippy_rust
+
 [working-directory: 'daemon']
-lint_rust:
+check_rust:
     cargo check
+
+[working-directory: 'daemon']
+clippy_rust:
     cargo clippy --all-targets --all-features -- -D warnings
 
 # Check dependencies and licensing
+dependencies_rust: machete_rust deny_rust audit_rust
+
 [working-directory: 'daemon']
-dependencies_rust:
+machete_rust:
     cargo machete
+
+[working-directory: 'daemon']
+deny_rust:
     cargo deny check
+
+[working-directory: 'daemon']
+audit_rust:
     cargo audit
 
 # Attempts to automatically fix issues we can
@@ -31,10 +53,10 @@ fix_rust:
     cargo fmt
     taplo format
 
-# Runs all unit tests in the workspace.
+# Runs all unit tests in the workspace; CI passes the 'fast' profile for quicker builds.
 [working-directory: 'daemon']
-test_rust:
-    cargo nextest run --no-fail-fast
+test_rust profile='dev':
+    cargo nextest run --no-fail-fast --cargo-profile {{ profile }}
 
 # Check commit messages
 commits:
