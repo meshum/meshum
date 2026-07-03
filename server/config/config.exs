@@ -59,6 +59,20 @@ config :tailwind,
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]
 
+config :meshum_gateway,
+  generators: [context_app: false]
+
+# Configures the endpoint
+config :meshum_gateway, MeshumGateway.Endpoint,
+  url: [host: "localhost"],
+  adapter: Bandit.PhoenixAdapter,
+  render_errors: [
+    formats: [json: MeshumGateway.ErrorJSON],
+    layout: false
+  ],
+  pubsub_server: MeshumGateway.PubSub,
+  live_view: [signing_salt: "eHI4b3pu"]
+
 # Configure Elixir's Logger
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",

@@ -20,6 +20,13 @@ config :meshum_web, MeshumWeb.Endpoint,
   secret_key_base: "+WklgFYjLQDeiudTCuKcv+wEhQGkak2skheM5X75MWmDvUL7xogOcKINEICNhwvN",
   server: false
 
+# We don't run a server during test. If one is required,
+# you can enable the server option below.
+config :meshum_gateway, MeshumGateway.Endpoint,
+  http: [ip: {127, 0, 0, 1}, port: 4002],
+  secret_key_base: "eWLBg/cytPUZl74IViUcO2Pd45f15EvWHYvOOCXPcdinQgW6QM9Bobe35CM9bfg4",
+  server: false
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 
