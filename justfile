@@ -1,7 +1,6 @@
 # https://just.systems
 
-default:
-    echo 'Hello, world!'
+default: rust elixir
 
 rust: format_rust lint_rust dependencies_rust test_rust
 
