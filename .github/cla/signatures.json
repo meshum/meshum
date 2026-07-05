@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "icla": {},
+  "ccla": {},
+  "allowlist": [
+    "dependabot[bot]",
+    "github-actions[bot]"
+  ]
+}

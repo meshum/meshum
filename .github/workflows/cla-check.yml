@@ -1,0 +1,56 @@
+name: CLA Check
+
+# ──────────────────────────────────────────────────────────────────────────
+# Unprivileged, read-only CLA evaluation.
+#
+# Runs on `pull_request` — including PRs opened from forks, where the
+# GITHUB_TOKEN is read-only and no secrets are accessible. This workflow:
+#
+#   1. Checks out the BASE branch (never the PR's merge ref) to get the
+#      script and signatures.json — both trusted files on master.
+#   2. Calls check.sh, which reads signatures and evaluates whether the
+#      PR author has signed.
+#   3. Uploads the result as a workflow artifact.
+#
+# It NEVER checks out PR code, NEVER executes untrusted content, and has no
+# write permissions. The privileged "CLA" workflow consumes the artifact via
+# `workflow_run` — the pattern GitHub Security Lab recommends for bridging
+# unprivileged checks to privileged side-effects without pull_request_target.
+#
+# https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
+# ──────────────────────────────────────────────────────────────────────────
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cla-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Evaluate CLA status
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the BASE branch only — never the PR's merge ref. The
+      # script and signatures.json are trusted code on master.
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Evaluate CLA signature
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash .github/cla/check.sh
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cla-result
+          path: cla-result/
+          retention-days: 1

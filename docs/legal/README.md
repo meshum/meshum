@@ -36,9 +36,9 @@ contributions for any other purpose.
 ## How do I sign?
 
 Signing is automated through GitHub for pull requests. The first time you open a pull
-request, the **Contributor Assistant** bot will leave a comment with a link to accept the
-[ICLA](icla.md) electronically (a single click after authenticating with GitHub). The pull
-request's "CLA" status check will flip green once you have signed; it is a **required**
+request, the CLA bot will leave a comment asking you to sign. Copy and paste the exact
+phrase from the comment — it references the [ICLA](icla.md) — as a new comment on the pull
+request. The `CLA` status check will flip green once you have signed; it is a **required**
 check, so the pull request cannot be merged until then.
 
 Corporate contributors should additionally have an authorised representative sign the

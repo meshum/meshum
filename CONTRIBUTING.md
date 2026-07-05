@@ -55,7 +55,6 @@ why.
 - Contributing on behalf of an employer? Have an authorised representative sign the
   [Corporate CLA](docs/legal/ccla.md).
 
-The **CLA Assistant** bot posts a comment on your pull request with a one-click link to
-sign electronically; the `CLA Assistant / CLA Assistant` status check is required and
-blocks the merge until you have signed. To re-run the check, comment `recheck` on the pull
-request. Questions go to **legal@meshum.dev**.
+The CLA bot posts a comment on your pull request with the exact phrase to copy-paste. The
+`CLA` status check is required and blocks the merge until you have signed — it updates
+automatically within seconds. Questions go to **legal@meshum.dev**.
