@@ -22,6 +22,9 @@ How this folder works (decided by Wannes Gennar, 2026-07-08):
 - [vision.md](vision.md) — why Meshum exists, audience, business model,
   roadmap posture.
 - [architecture.md](architecture.md) — components, communication, deployment.
+- [identity.md](identity.md) — tenancy, identity ownership, the two
+  independent auth axes (harness↔gateway vs. daemon↔control plane), and the
+  authorization server.
 - [governance.md](governance.md) — what governance means for v1, philosophy,
   out-of-scope list.
 - [quality.md](quality.md) — quality requirements per language/component.

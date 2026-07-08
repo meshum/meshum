@@ -28,7 +28,13 @@ MCP calls (it's just JSON underneath), it can filter out tools that aren't
 allowed.
 
 v1 scope: **allowing/blocking servers + tools through the gateway.** Nothing
-beyond that.
+beyond that on the policy side — but note this is enforced *in addition to*,
+not instead of, per-user upstream credential exchange, which is also v1
+scope: the gateway exchanges the caller's identity for a per-user upstream
+token (rather than a shared service credential) before proxying a call, so
+that upstream tools' native authorization and audit trails keep working. See
+[identity.md](identity.md#axis-a--ai-harness--gateway-the-mcp-tool-call-path)
+for the full flow.
 
 ## Skill/agent distribution
 

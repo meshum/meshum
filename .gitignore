@@ -1,2 +1,4 @@
 # AI related files
 .claude/settings.local.json
+.claude/plans/
+.claude/tasks/

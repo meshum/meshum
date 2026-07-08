@@ -43,9 +43,17 @@ Shared business logic between the gateway and web apps.
 
 ## Communication
 
-- **daemon → web**: the daemon talks to the control plane (`meshum_web`).
+- **daemon → web**: the daemon talks to the control plane (`meshum_web`) to
+  sync settings/skills/config. This is a **sync** relationship, unrelated to
+  MCP or tool calls — see [identity.md](identity.md#axis-b--daemon--control-plane-sync).
 - **gateway → web**: the gateway talks to the control plane (`meshum_web`).
 - **gateway ↮ daemon**: the gateway and daemon do **not** talk to each other.
+- **harness → gateway**: AI harnesses (Claude Code, …) call the gateway
+  **directly** to make MCP tool calls, authenticating per the MCP spec's
+  OAuth 2.1 requirements. **The daemon has no role in this path** — this is
+  worth stating explicitly since it is easy to mistakenly assume the daemon
+  sits in the tool-call path. See [identity.md](identity.md#axis-a--ai-harness--gateway-the-mcp-tool-call-path)
+  for the full flow.
 - Communication method/protocol: **HTTP polling for the MVP** — both daemon →
   web and gateway → web. This implies a **poll** sync model: changes propagate
   on the poll interval. Better/other sync methods (push via WebSocket, gRPC, …)
@@ -54,6 +62,8 @@ Shared business logic between the gateway and web apps.
 ## Deployment model
 
 - Meshum is **self-hosted by organisations**; a **hosted offering** exists for
-  companies that want it.
+  companies that want it. Every deployment is single-tenant (no `Org` table);
+  the hosted offering provisions an isolated instance per customer rather
+  than sharing one multi-tenant database — see [identity.md](identity.md#tenancy).
 - The **daemon is always deployed to employee/client computers**.
 - **web and gateway** can run on the same machine, in Docker, K8s, ….
