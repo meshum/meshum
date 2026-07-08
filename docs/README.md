@@ -19,6 +19,8 @@ How this folder works (decided by Wannes Gennar, 2026-07-08):
 
 ## Pages
 
+- [vision.md](vision.md) — why Meshum exists, audience, business model,
+  roadmap posture.
 - [architecture.md](architecture.md) — components, communication, deployment.
 - [governance.md](governance.md) — what governance means for v1, philosophy,
   out-of-scope list.

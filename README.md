@@ -2,14 +2,53 @@
 
 [**meshum.dev**](https://www.meshum.dev) · [Repository](https://github.com/meshum/meshum)
 
-Meshum provides **centralized governance for AI usage within an organization**. It collects
-AI telemetry, distributes skills, agents, and AI-related tooling, and lets you govern which
-MCP (Model Context Protocol) servers your employees can use — down to controlling which
-individual tools inside an MCP are exposed.
+**Meshum gives organizations one place to see, manage, and govern how their
+people use AI.**
 
-> **Status:** early / `0.0.1`. Interfaces are unstable and may change without notice.
+When a company rolls out AI tooling (Claude Code, Codex, OpenCode, …) to its
+staff, the same questions surface immediately: *what are our employees
+actually doing with AI? How do they share skills and agents with each other?
+Which MCP servers — and which tools inside them — should be reachable? How do
+we distribute all of that configuration to every machine?* Meshum is the
+central platform that answers them:
 
-## Tech stack & toolchains
+- **See** — collect AI usage telemetry across your organization and turn it
+  into insight.
+- **Manage** — distribute skills, agents, MCP tooling, and AI client
+  configuration to employee machines, from one control plane.
+- **Govern** — decide which MCP servers your employees can use, down to
+  filtering the individual tools an MCP server exposes.
+
+Two things Meshum deliberately is **not**: it doesn't *run* AI (no model
+hosting, no provider proxying — we manage the configuration, not the
+platform), and it isn't a blocker — it gives you the tooling to set up
+governance, but a determined developer can bypass blocks, so we don't pretend
+otherwise.
+
+Meshum is **self-hosted** — it holds upstream credentials and sensitive usage
+telemetry, and that data belongs on your infrastructure. A hosted offering
+exists for companies that prefer not to run it themselves.
+
+> **Status:** early / `0.0.1`. Interfaces are unstable and may change without
+> notice. The first MVP targets Claude (Code); other vendors follow.
+
+## How it works
+
+Three components (see [docs/architecture.md](docs/architecture.md)):
+
+- **daemon** (`daemon/`, Rust) — runs on employee machines with a tray icon,
+  and syncs settings, skills, agents, and configuration down from the control
+  plane.
+- **gateway** (`server/apps/meshum_gateway`, Elixir) — an MCP proxy: AI agents
+  call it as if it were the MCP server they need (Jira, GitHub, …), and it
+  filters what policy doesn't allow.
+- **web** (`server/apps/meshum_web`, Elixir) — the control plane where the
+  organization sees usage and manages and deploys its policies.
+
+The vision, goals, and decisions behind all of this live in
+[docs/](docs/README.md).
+
+## Development
 
 Toolchains are pinned in the repo:
 
@@ -17,24 +56,15 @@ Toolchains are pinned in the repo:
 - **Rust** `1.96.0` (edition 2024) — [`daemon/rust-toolchain.toml`](daemon/rust-toolchain.toml);
   `rustup` installs it automatically. `unsafe_code` is forbidden at the workspace level.
 
-The server targets **PostgreSQL** (via Ecto).
-
-## Getting started
-
-Prerequisites: a working Rust toolchain (rustup), Elixir `1.20.2-otp-29`, Postgres, and
-[`just`](https://just.systems). Then:
+The server targets **PostgreSQL** (via Ecto; `compose.yaml` provides one).
+With Rust, Elixir, Postgres, and [`just`](https://just.systems) available:
 
 ```sh
 just setup
 ```
 
-This installs the cargo tools used by CI, fetches/builds the daemon, and fetches, compiles,
-and sets up the server (deps, compile, `mix setup`).
-
-## Common tasks
-
-All checks are run through `just` and mirror what CI runs (see
-[`.github/workflows/`](.github/workflows)). The main entry points:
+All checks run through `just` and mirror CI (see
+[`.github/workflows/`](.github/workflows)):
 
 | Command | Description |
 | --- | --- |
