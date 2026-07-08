@@ -32,4 +32,7 @@ How this folder works (decided by Wannes Gennar, 2026-07-08):
 - [quality.md](quality.md) — quality requirements per language/component.
 - [ai-context.md](ai-context.md) — how AI instruction files, rule files, and
   skills/agents are organised.
+- [development.md](development.md) — local development environment: the
+  development identity provider and how the auth axes run end-to-end without
+  a real customer IdP.
 - [legal/](legal/README.md) — CLA / licensing (human-only).
