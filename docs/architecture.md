@@ -46,9 +46,10 @@ Shared business logic between the gateway and web apps.
 - **daemon → web**: the daemon talks to the control plane (`meshum_web`).
 - **gateway → web**: the gateway talks to the control plane (`meshum_web`).
 - **gateway ↮ daemon**: the gateway and daemon do **not** talk to each other.
-- Communication method/protocol: `UNDECIDED`. The sync model follows from the
-  protocol choice: something one-way like HTTP means a **poll** model; gRPC or
-  WebSocket enables a **push** model.
+- Communication method/protocol: **HTTP polling for the MVP** — both daemon →
+  web and gateway → web. This implies a **poll** sync model: changes propagate
+  on the poll interval. Better/other sync methods (push via WebSocket, gRPC, …)
+  can be added later.
 
 ## Deployment model
 

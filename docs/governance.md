@@ -18,9 +18,8 @@ Most AI clients support outputting OpenTelemetry — either out of the box (like
 Claude Code) or through plugins (OpenCode). The daemon could help set those up
 out of the box.
 
-Where telemetry data is ingested/flows to: **provisionally the web interface**
-(control plane) — the user's working assumption, but explicitly *not* a hard
-decision yet.
+Telemetry is ingested by the **control plane** (`meshum_web`). Ingestion might
+get split out into a separate OTel collector component later.
 
 ## MCP control
 
@@ -33,7 +32,20 @@ beyond that.
 
 ## Skill/agent distribution
 
-`UNDECIDED` — to be discussed at a later point.
+In scope for v1.
+
+- **Source of truth: the control plane.** Organisations author/upload skills
+  and agents in `meshum_web`; the server stores them and the daemon syncs them
+  down.
+- **Installation is harness-dependent.** The daemon has per-harness adapters
+  that install via whatever mechanism each supported AI client uses natively.
+  v1 ships the **Claude Code adapter only**.
+- **Scoping matches policies:** org-wide with team-level overrides.
+- **Managed state:** the daemon re-syncs on drift — a skill removed locally
+  gets restored. This is managed state, not blocking; the philosophy above
+  still applies.
+- **Versioning: latest-only.** The control plane holds one current version per
+  skill/agent; daemons converge to it. No pinning or rollback in v1.
 
 ## Policy granularity
 
