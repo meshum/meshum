@@ -1,7 +1,14 @@
 defmodule MeshumGateway.Telemetry do
+  @moduledoc """
+  Supervises the telemetry poller and defines the metrics collected for the
+  gateway (Phoenix and BEAM VM).
+  """
   use Supervisor
   import Telemetry.Metrics
 
+  @doc """
+  Starts the telemetry supervisor.
+  """
   def start_link(arg) do
     Supervisor.start_link(__MODULE__, arg, name: __MODULE__)
   end
@@ -19,6 +26,9 @@ defmodule MeshumGateway.Telemetry do
     Supervisor.init(children, strategy: :one_for_one)
   end
 
+  @doc """
+  The metric definitions collected by this supervisor's reporters.
+  """
   def metrics do
     [
       # Phoenix Metrics

@@ -16,9 +16,9 @@ languages and should be leveraged as such.
 ## Elixir (`server/`)
 
 - Analysis via `just elixir` (`mix check`: credo, dialyxir, etc.).
-- Documentation coverage is **not** currently enforced by the analysis —
-  adding enforcement is a decided improvement (TODO: pick and wire up
-  tooling for it).
+- Documentation coverage is enforced at 100% via `doctor` (`server/.doctor.exs`),
+  run as part of `mix check`; only the Phoenix-generated meta modules are
+  exempt.
 
 ## Generated documentation
 

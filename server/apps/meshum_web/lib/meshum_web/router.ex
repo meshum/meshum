@@ -1,4 +1,7 @@
 defmodule MeshumWeb.Router do
+  @moduledoc """
+  Routes for the control plane web interface.
+  """
   use MeshumWeb, :router
 
   pipeline :browser do

@@ -1,4 +1,7 @@
 defmodule MeshumGateway.Endpoint do
+  @moduledoc """
+  The HTTP entry point of the MCP proxy gateway.
+  """
   use Phoenix.Endpoint, otp_app: :meshum_gateway
 
   # The session will be stored in the cookie and signed,

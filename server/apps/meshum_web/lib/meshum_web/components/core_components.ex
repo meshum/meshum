@@ -454,6 +454,9 @@ defmodule MeshumWeb.CoreComponents do
 
   ## JS Commands
 
+  @doc """
+  Shows the element matching `selector` with a fade/slide-in transition.
+  """
   def show(js \\ %JS{}, selector) do
     JS.show(js,
       to: selector,
@@ -465,6 +468,9 @@ defmodule MeshumWeb.CoreComponents do
     )
   end
 
+  @doc """
+  Hides the element matching `selector` with a fade/slide-out transition.
+  """
   def hide(js \\ %JS{}, selector) do
     JS.hide(js,
       to: selector,

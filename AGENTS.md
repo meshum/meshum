@@ -20,6 +20,14 @@ See `docs/architecture.md` before assuming what any component does.
 - `just` — run all checks (Rust + Elixir); `just rust` / `just elixir` for one side.
 - `just commits` — validate commit messages (conventional commits, enforced).
 
+## Opening pull requests
+
+Before opening a PR, verify it complies with [AI-POLICY.md](AI-POLICY.md) —
+in particular that your human has actually reviewed and can defend the work
+(they are responsible for it), and that AI involvement is disclosed in the PR
+or commit attribution. If compliance is unclear, discuss it with the user
+before opening the PR.
+
 ## Conventions
 
 - Quality bar: `docs/quality.md`. Code quality is first-class; no

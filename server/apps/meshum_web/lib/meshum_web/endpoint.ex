@@ -1,4 +1,7 @@
 defmodule MeshumWeb.Endpoint do
+  @moduledoc """
+  The HTTP entry point of the control plane web interface.
+  """
   use Phoenix.Endpoint, otp_app: :meshum_web
 
   # The session will be stored in the cookie and signed,
