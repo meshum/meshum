@@ -1,18 +1,10 @@
 # MeshumWeb
 
-To start your Phoenix server:
+The control plane: the Phoenix LiveView web interface where organizations see
+their AI usage and manage and deploy their policies, hooks, and distributed
+tooling. Changes made here are synced to the gateway (server side) and the
+daemons on employee machines (client side). Shared logic lives in
+[`meshum`](../meshum).
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server`
-
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
-
-Ready to run in production? Please [check our deployment guides](https://phoenix.hexdocs.pm/deployment.html).
-
-## Learn more
-
-* Official website: https://www.phoenixframework.org/
-* Guides: https://phoenix.hexdocs.pm/overview.html
-* Docs: https://phoenix.hexdocs.pm
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+Start it with `mix phx.server` from the umbrella root (`server/`) and visit
+[`localhost:4000`](http://localhost:4000).

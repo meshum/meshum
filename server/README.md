@@ -1,26 +1,19 @@
-# Meshum.Umbrella
+# Meshum server
 
-To start your Phoenix server: 
+Elixir umbrella housing Meshum's server side. It is composed of three apps:
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server` 
+- [`meshum`](apps/meshum) — shared business logic between the gateway and web.
+- [`meshum_gateway`](apps/meshum_gateway) — the MCP proxy AI agents talk to.
+- [`meshum_web`](apps/meshum_web) — the control plane web interface.
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+See [`docs/architecture.md`](../docs/architecture.md) for what each does and
+how they communicate. The umbrella defines separate `meshum_gateway` and
+`meshum_web` releases; they can run on the same machine.
 
-Ready to run in production? Please [check our deployment guides](https://phoenix.hexdocs.pm/deployment.html).
-## Umbrella project
+## Development
 
-This is an Elixir umbrella project. It is composed of multiple apps:
-
-* [Meshum](apps/meshum) - The core logic
-* [MeshumWeb](apps/meshum_web) - The Phoenix web interface
-
-Each app has its own README and configuration.
-
-## Learn more
-
-* Official website: https://www.phoenixframework.org/
-* Guides: https://phoenix.hexdocs.pm/overview.html
-* Docs: https://phoenix.hexdocs.pm
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+- `mix setup` installs and sets up dependencies (Postgres required; the repo
+  root `compose.yaml` provides one).
+- `mix phx.server` (or `iex -S mix phx.server`) starts the endpoints; the web
+  interface is at [`localhost:4000`](http://localhost:4000).
+- `mix precommit` / `just elixir` from the repo root run the analysis suite.
