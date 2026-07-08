@@ -1,5 +1,11 @@
 # Contributing
 
+## AI usage
+
+AI assistance is welcome under the conditions in [AI-POLICY.md](AI-POLICY.md):
+you remain fully responsible for what you submit, and disclosure of AI
+involvement is expected.
+
 ## Layout
 
 Monorepo with two main pieces:
