@@ -27,6 +27,8 @@ How this folder works (decided by Wannes Gennar, 2026-07-08):
   authorization server.
 - [governance.md](governance.md) — what governance means for v1, philosophy,
   out-of-scope list.
+- [control-plane.md](control-plane.md) — `meshum_web` design: navigation,
+  policy UI, skill/agent distribution, machines, telemetry.
 - [quality.md](quality.md) — quality requirements per language/component.
 - [ai-context.md](ai-context.md) — how AI instruction files, rule files, and
   skills/agents are organised.

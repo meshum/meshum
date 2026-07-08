@@ -75,14 +75,25 @@ skills/agents/config/policy locally (see
 needs its own, separate credential — entirely unrelated to MCP, OAuth 2.1
 resource-server validation, or upstream token exchange.
 
-- **Enrollment is self-serve and user-tied.** An employee signs the daemon in
-  with their own IdP-federated identity at enrollment. The machine's team is
+- **Enrollment is login: a loopback-redirect OAuth flow, `gcloud auth login`
+  style.** The daemon binds a local port and opens the employee's browser to
+  a Meshum auth URL with that port as the redirect target. The employee
+  authenticates (usually a warm IdP session already — near-instant, no
+  password prompt), and the browser redirects the credential straight back
+  to the daemon's local listener. **That single event is enrollment**: it
+  creates the `Machine` and its `MachineCredential` together, tied to the
+  authenticating `UserRef`, with no separate code-exchange step. The
+  device-authorization-grant pattern (`gh auth login` style — short code +
+  URL, works headless) was considered and rejected for v1: every target
+  machine is a desktop with the daemon's tray icon present, so the simpler
+  loopback flow is sufficient. The machine is auto-named (e.g. hostname) at
+  enrollment with no employee input, renameable later. The machine's team is
   resolved transitively through the owning employee (machine → owning user →
   team) — a machine does not carry an independent team assignment.
 - **Credential shape:** short-lived access token with refresh
-  (client-credentials-style, no human interaction on each poll). Enrollment
-  issues a long-lived refresh credential once; the daemon exchanges it for a
-  short-lived access token every poll cycle.
+  (client-credentials-style, no human interaction on each poll after
+  enrollment). Enrollment issues a long-lived refresh credential once; the
+  daemon exchanges it for a short-lived access token every poll cycle.
 
 ## Gateway ↔ control plane trust
 
@@ -100,9 +111,9 @@ above implies (`server/apps/meshum`, per
 - `TeamRef` — cached IdP team/group.
 - `UserRef` — cached IdP user, belongs to a `TeamRef`.
 - `Machine` — belongs to an owning `UserRef` (team resolved transitively, no
-  separate team field); has a rotating `MachineCredential`.
-- `EnrollmentCode` — one-time code used to link a `Machine` to its owning
-  `UserRef` at enrollment.
+  separate team field); has a `name` (auto-populated at enrollment,
+  renameable) and a rotating `MachineCredential`; created atomically at the
+  loopback-redirect enrollment callback, no separate code-exchange entity.
 - `Policy` — org-wide or team-scoped allow/block rules.
 - `UpstreamServer` — a registered upstream MCP tool (Jira, GitHub, …) and
   Meshum's own OAuth client registration with it.
@@ -117,6 +128,9 @@ they come from `boruta`.
 - **OIDC relying-party library:** [`assent`](https://hex.pm/packages/assent)
   — chosen for broad enterprise-IdP coverage (presets plus generic OIDC
   support) without heavy per-customer glue code.
-- **Admin roles:** single admin role for v1. Anyone who can log into the
+- **Admin roles:** no role distinction in v1 — anyone who can log into the
   control plane can manage policy, skills, and upstream connections for the
-  org. No viewer/read-only role in v1.
+  org, and connect their own upstream accounts. This is a **deliberate v1
+  simplification, not a permanent stance**: proper authorization controls
+  (an admin/viewer distinction or similar) are intended for a later version,
+  just not v1/MVP.
