@@ -30,6 +30,11 @@ defmodule MeshumGateway.Endpoint do
     only: MeshumGateway.static_paths(),
     raise_on_missing_only: code_reloading?
 
+  # If running in development, enable the development MCP
+  if Mix.env() == :dev do
+    plug Tidewave
+  end
+
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
   if code_reloading? do

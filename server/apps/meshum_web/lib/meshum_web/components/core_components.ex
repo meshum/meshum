@@ -313,6 +313,32 @@ defmodule MeshumWeb.CoreComponents do
   end
 
   @doc """
+  Renders a KPI stat tile. The value is set in monospace to read as a
+  measured figure rather than prose.
+
+  ## Examples
+
+      <.stat label="Enrolled machines" value="12" hint="+3 this week" icon="hero-server-stack" />
+  """
+  attr :label, :string, required: true
+  attr :value, :string, required: true
+  attr :hint, :string, default: nil
+  attr :icon, :string, default: nil
+
+  def stat(assigns) do
+    ~H"""
+    <div class="rounded-xl border border-base-300 bg-base-100 p-4">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-base-content/60">{@label}</span>
+        <.icon :if={@icon} name={@icon} class="size-4 text-base-content/40" />
+      </div>
+      <p class="mt-2 font-mono text-2xl font-semibold tracking-tight tabular-nums">{@value}</p>
+      <p :if={@hint} class="mt-0.5 text-xs text-base-content/50">{@hint}</p>
+    </div>
+    """
+  end
+
+  @doc """
   Renders a header with title.
   """
   slot :inner_block, required: true

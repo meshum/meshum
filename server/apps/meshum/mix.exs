@@ -42,7 +42,6 @@ defmodule Meshum.MixProject do
       {:postgrex, ">= 0.0.0"},
       {:jason, "~> 1.2"},
       {:swoosh, "~> 1.16"},
-      {:req, "~> 0.5"},
       {:sobelow, "~> 0.14", only: [:dev, :test], runtime: false, warn_if_outdated: true}
     ]
   end

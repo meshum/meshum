@@ -9,8 +9,6 @@ defmodule MeshumWeb.Application do
   def start(_type, _args) do
     children = [
       MeshumWeb.Telemetry,
-      # Start a worker by calling: MeshumWeb.Worker.start_link(arg)
-      # {MeshumWeb.Worker, arg},
       # Start to serve requests, typically the last entry
       MeshumWeb.Endpoint
     ]

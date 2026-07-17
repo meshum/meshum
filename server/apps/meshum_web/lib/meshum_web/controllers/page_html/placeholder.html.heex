@@ -1,0 +1,18 @@
+<Layouts.app flash={@flash} active={@section.key} page_title={@section.label}>
+  <div class="mx-auto flex max-w-md flex-col items-center py-20 text-center">
+    <div class="grid size-14 place-items-center rounded-2xl border border-base-300 bg-base-100">
+      <.icon name={@section.icon} class="size-6 text-primary" />
+    </div>
+    <h2 class="mt-5 font-display text-lg font-bold tracking-tight">{@section.label}</h2>
+    <p class="mt-1.5 text-sm text-base-content/60">
+      This section isn't built yet. It's wired into the shell and ready for its
+      screens.
+    </p>
+    <.link
+      href={~p"/"}
+      class="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+    >
+      <.icon name="hero-arrow-left" class="size-4" /> Back to dashboard
+    </.link>
+  </div>
+</Layouts.app>

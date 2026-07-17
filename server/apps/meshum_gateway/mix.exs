@@ -37,12 +37,14 @@ defmodule MeshumGateway.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:meshum, in_umbrella: true},
       {:phoenix, "~> 1.8.8"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:bandit, "~> 1.5"},
-      {:sobelow, "~> 0.14", only: [:dev, :test], runtime: false, warn_if_outdated: true}
+      {:sobelow, "~> 0.14", only: [:dev, :test], runtime: false, warn_if_outdated: true},
+      {:tidewave, "~> 0.6", only: :dev}
     ]
   end
 
