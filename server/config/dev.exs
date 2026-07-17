@@ -132,3 +132,12 @@ config :swoosh, :api_client, false
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.
 config :phoenix, :stacktrace_depth, 20
+
+# Configure authentication providers that are available.
+config :meshum_web, :auth_providers,
+  oidc: [
+    strategy: MeshumWeb.Auth.Oidc,
+    client_id: "meshum",
+    client_secret: "Grsp2ixMVC1SA4nbnjoVWcKKs3CGIPkF",
+    base_url: "http://localhost:8080/realms/example-realm"
+  ]

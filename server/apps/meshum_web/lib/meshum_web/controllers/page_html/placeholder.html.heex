@@ -1,4 +1,9 @@
-<Layouts.app flash={@flash} active={@section.key} page_title={@section.label}>
+<Layouts.app
+  flash={@flash}
+  active={@section.key}
+  page_title={@section.label}
+  current_user={@current_user}
+>
   <div class="mx-auto flex max-w-md flex-col items-center py-20 text-center">
     <div class="grid size-14 place-items-center rounded-2xl border border-base-300 bg-base-100">
       <.icon name={@section.icon} class="size-6 text-primary" />

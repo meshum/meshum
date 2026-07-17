@@ -48,7 +48,7 @@ defmodule MeshumWeb.Plugs.CspTest do
 
   describe "the :browser pipeline" do
     test "emits a CSP header whose nonce matches the inline script", %{conn: conn} do
-      conn = get(conn, ~p"/")
+      conn = conn |> log_in_user() |> get(~p"/")
       html = html_response(conn, 200)
 
       assert [header] = get_resp_header(conn, "content-security-policy")

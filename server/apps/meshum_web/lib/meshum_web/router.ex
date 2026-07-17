@@ -4,6 +4,8 @@ defmodule MeshumWeb.Router do
   """
   use MeshumWeb, :router
 
+  import MeshumWeb.Plugs.Auth, only: [requires_user: 2]
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -14,8 +16,21 @@ defmodule MeshumWeb.Router do
     plug MeshumWeb.Plugs.Csp
   end
 
-  scope "/", MeshumWeb do
+  pipeline :auth do
+    plug :requires_user
+  end
+
+  scope "/auth", MeshumWeb.Controllers.Auth do
     pipe_through :browser
+
+    get "/login", AuthController, :login_page
+    get "/login/:provider", AuthController, :login
+    get "/callback/:provider", AuthController, :callback
+    get "/logout", AuthController, :logout
+  end
+
+  scope "/", MeshumWeb do
+    pipe_through [:browser, :auth]
 
     get "/", PageController, :home
 

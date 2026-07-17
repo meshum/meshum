@@ -3,7 +3,7 @@ defmodule MeshumWeb.PageControllerTest do
 
   describe "MeshumWeb.PageController.home/2" do
     test "renders the dashboard within the app shell", %{conn: conn} do
-      conn = get(conn, ~p"/")
+      conn = conn |> log_in_user() |> get(~p"/")
       html = html_response(conn, 200)
       assert html =~ "Governance overview"
       # Shell nav is present.
@@ -14,7 +14,7 @@ defmodule MeshumWeb.PageControllerTest do
 
   describe "MeshumWeb.PageController.section/2" do
     test "renders a stub for an unbuilt section through the shell", %{conn: conn} do
-      conn = get(conn, ~p"/machines")
+      conn = conn |> log_in_user() |> get(~p"/machines")
       html = html_response(conn, 200)
       assert html =~ "Machines"
       assert html =~ "built yet"

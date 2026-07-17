@@ -31,6 +31,11 @@ defmodule MeshumWeb.Layouts do
 
   attr :page_title, :string, default: nil, doc: "heading shown in the topbar"
 
+  attr :current_user, :map,
+    default: nil,
+    doc:
+      "signed-in user's claims (e.g. `%{\"email\" => ..., \"name\" => ...}`), or nil when signed out"
+
   slot :actions, doc: "optional page-level actions rendered on the right of the topbar"
   slot :inner_block, required: true
 
@@ -69,6 +74,8 @@ defmodule MeshumWeb.Layouts do
       <div class="border-t border-base-300 px-3 py-2">
         <.nav_link item={settings_item()} active={@active} />
       </div>
+
+      <.current_user_card :if={@current_user} user={@current_user} />
     </aside>
 
     <div class="lg:pl-64">
@@ -145,6 +152,46 @@ defmodule MeshumWeb.Layouts do
       {@item.label}
     </a>
     """
+  end
+
+  @doc false
+  # The signed-in user, pinned to the bottom of the nav rail, with a logout
+  # link. `user` is the OIDC claims map from `MeshumWeb.Plugs.Auth`.
+  attr :user, :map, required: true
+
+  defp current_user_card(assigns) do
+    assigns =
+      assigns
+      |> assign(:display_name, user_display_name(assigns.user))
+      |> assign(
+        :initial,
+        assigns.user |> user_display_name() |> String.first() |> String.upcase()
+      )
+
+    ~H"""
+    <div class="flex items-center gap-2.5 border-t border-base-300 px-3 py-3">
+      <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
+        {@initial}
+      </span>
+
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-sm font-medium">{@display_name}</p>
+      </div>
+
+      <a
+        href={~p"/auth/logout"}
+        title="Sign out"
+        aria-label="Sign out"
+        class="shrink-0 rounded-md p-1.5 text-base-content/60 transition hover:bg-base-300 hover:text-base-content"
+      >
+        <.icon name="hero-arrow-right-start-on-rectangle" class="size-4.5" />
+      </a>
+    </div>
+    """
+  end
+
+  defp user_display_name(user) do
+    user["name"] || user["preferred_username"] || user["email"] || "Signed in"
   end
 
   @doc """
