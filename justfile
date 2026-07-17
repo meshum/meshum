@@ -1,12 +1,23 @@
 # https://just.systems
 
-default: rust elixir
+default: rust elixir commits changelog
 
 rust: format_rust lint_rust dependencies_rust test_rust
 
 [working-directory: 'server']
 elixir:
     mix check
+
+# Export the running dev Keycloak realm to containers/keycloak/, overwriting
+# the checked-in realm JSON with the current state (e.g. after editing a
+# client's redirect URIs in the admin console at localhost:8080). kc.sh export
+# can't run against the live server's storage, so this briefly stops the
+# container, runs the export in a one-off container sharing the same volumes,
+# then starts it back up.
+realm-export:
+    podman compose stop keycloak
+    podman compose run --rm keycloak export --dir /opt/keycloak/data/import --realm example-realm --users realm_file
+    podman compose start keycloak
 
 # Check if Rust code is formatted correctly
 format_rust: fmt_rust taplo_rust

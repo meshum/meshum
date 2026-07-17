@@ -1,6 +1,13 @@
 {
   "version": 1,
-  "icla": {},
+  "icla": {
+    "dealloc": {
+      "name": "Wannes Gennar",
+      "email": "",
+      "signedAt": "2026-07-09T23:41:56Z",
+      "claVersion": "1.0"
+    }
+  },
   "ccla": {},
   "allowlist": [
     "dependabot[bot]",

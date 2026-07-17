@@ -1,0 +1,14 @@
+{
+    "mcpServers": {
+        "meshum-web": {
+            "type": "streamable-http",
+            "url": "http://localhost:4000/tidewave/mcp",
+            "note": "For interacting with the Meshum Control Plane MCP"
+        },
+        "meshum-gateway": {
+            "type": "streamable-http",
+            "url": "http://localhost:4001/tidewave/mcp",
+            "note": "For interacting with the Meshum Control Plane MCP"
+        }
+    }
+}

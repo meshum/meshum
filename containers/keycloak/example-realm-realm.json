@@ -404,6 +404,8 @@
   "users" : [ {
     "id" : "7cc9192e-807c-40fd-8ba0-f8edb62aaada",
     "username" : "engineer",
+    "firstName" : "Engineer",
+    "lastName" : "Example",
     "email" : "engineer@localhost",
     "emailVerified" : true,
     "enabled" : true,
@@ -412,8 +414,9 @@
     "credentials" : [ {
       "id" : "de221368-5ec3-4bba-a961-8dfaa3249366",
       "type" : "password",
-      "createdDate" : 1783540851709,
-      "secretData" : "{\"value\":\"syhFFxtRZLcp7SY7w7XFK3dCzvl+4DCNXlNAai1tYIk=\",\"salt\":\"OTMe1bwD02KZfFTHXxLpFQ==\",\"additionalParameters\":{}}",
+      "userLabel" : "My password",
+      "createdDate" : 1783614227862,
+      "secretData" : "{\"value\":\"w1xJfzfhOv52BQSDNusAqLpyB179DXXKSm18tPdYhkQ=\",\"salt\":\"cipC7+4WV1IR56TKNtb37A==\",\"additionalParameters\":{}}",
       "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
     } ],
     "disableableCredentialTypes" : [ ],
@@ -432,8 +435,9 @@
     "credentials" : [ {
       "id" : "a1489385-8e86-4fdb-af70-b0f3dee3b397",
       "type" : "password",
-      "createdDate" : 1783540851735,
-      "secretData" : "{\"value\":\"iztDFJme+qEcnO1T3Ff4ExolsEP3m+YGgEl47pTDLZY=\",\"salt\":\"lDbPBWXsdsGVBzmq4Hb21w==\",\"additionalParameters\":{}}",
+      "userLabel" : "My password",
+      "createdDate" : 1783614244126,
+      "secretData" : "{\"value\":\"qkhZEvok4qxdK1GtgUzIhWHjiZP/ao0mqPXNEfesv0A=\",\"salt\":\"rH6Kc4N1gIUTu5326LLuVg==\",\"additionalParameters\":{}}",
       "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
     } ],
     "disableableCredentialTypes" : [ ],
@@ -441,6 +445,29 @@
     "realmRoles" : [ "default-roles-example-realm" ],
     "notBefore" : 0,
     "groups" : [ "/marketing" ]
+  }, {
+    "id" : "e464c758-c312-43a1-aef3-8a1ffb6a3925",
+    "username" : "multi-team",
+    "firstName" : "Multi Team",
+    "lastName" : "Example",
+    "email" : "multi-team@localhost",
+    "emailVerified" : true,
+    "enabled" : true,
+    "createdTimestamp" : 1783616053108,
+    "totp" : false,
+    "credentials" : [ {
+      "id" : "83f43302-ba8f-4d2a-ac24-fd547e820385",
+      "type" : "password",
+      "userLabel" : "My password",
+      "createdDate" : 1783616065175,
+      "secretData" : "{\"value\":\"bNOeIs0TI1FYOM1ZmPi3uW0p3fbnh8XgnjFvhqYWywE=\",\"salt\":\"343KLj93xIdw+lK7iyITyA==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-example-realm" ],
+    "notBefore" : 0,
+    "groups" : [ "/engineering", "/marketing" ]
   }, {
     "id" : "b0b473b2-efc6-4c5c-9645-a3fb5483028f",
     "username" : "service-account-meshum",
@@ -610,8 +637,8 @@
     "alwaysDisplayInConsole" : false,
     "clientAuthenticatorType" : "client-secret",
     "secret" : "Grsp2ixMVC1SA4nbnjoVWcKKs3CGIPkF",
-    "redirectUris" : [ "" ],
-    "webOrigins" : [ "" ],
+    "redirectUris" : [ "http://localhost:4000/auth/callback" ],
+    "webOrigins" : [ "http://localhost:4000" ],
     "notBefore" : 0,
     "bearerOnly" : false,
     "consentRequired" : false,
@@ -624,14 +651,18 @@
     "frontchannelLogout" : true,
     "protocol" : "openid-connect",
     "attributes" : {
-      "realm_client" : "false",
-      "oidc.ciba.grant.enabled" : "false",
+      "logout.confirmation.enabled" : "false",
       "client.secret.creation.time" : "1783538952",
-      "backchannel.logout.session.required" : "true",
       "standard.token.exchange.enabled" : "false",
       "oauth2.jwt.authorization.grant.enabled" : "false",
+      "frontchannel.logout.session.required" : "true",
+      "post.logout.redirect.uris" : "http://localhost:4000/",
       "oauth2.device.authorization.grant.enabled" : "false",
       "backchannel.logout.revoke.offline.tokens" : "false",
+      "realm_client" : "false",
+      "oidc.ciba.grant.enabled" : "false",
+      "backchannel.logout.session.required" : "true",
+      "display.on.consent.screen" : "false",
       "dpop.bound.access.tokens" : "false"
     },
     "authenticationFlowBindingOverrides" : { },

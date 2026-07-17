@@ -28,6 +28,18 @@ just setup
 
 Installs the required cargo tools, fetches/builds the daemon, and fetches/compiles/sets up the server.
 
+If you want your Claude Code instance to send OTel data to Meshum, put this in your `.claude/settings.local.json`:
+```json
+"env": {
+  "CLAUDE_CODE_ENABLE_TELEMETRY": "1",
+  "OTEL_METRICS_EXPORTER": "otlp",
+  "OTEL_LOGS_EXPORTER": "otlp",
+  "OTEL_EXPORTER_OTLP_PROTOCOL": "http/json",
+  "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT": "http://localhost:4000/otel/ingest",
+  "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "http://localhost:4000/otel/ingest"
+}
+```
+
 ## Before pushing
 
 Run the checks relevant to what you touched — these are the same checks CI runs (`.github/workflows/daemon.yml`, `server.yml`), so running them locally avoids CI failures.
