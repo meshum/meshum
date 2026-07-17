@@ -39,9 +39,18 @@ to `meshum_gateway`. This is pure MCP-spec territory:
 2. The gateway validates that token per call and checks org/team allow-block
    policy (see [governance.md](governance.md)).
 3. If the call targets an upstream tool (Jira, GitHub, …), the gateway
-   exchanges (RFC 8693 token exchange) the caller's Meshum token for a
-   per-user, upstream-tool-scoped token, using an upstream connection the
-   employee set up themselves in advance (see below).
+   exchanges (RFC 8693 token-exchange semantics) the caller's Meshum token
+   for a per-user, upstream-tool-scoped token, using an upstream connection
+   the employee set up themselves in advance (see below). **This exchange is
+   entirely gateway-internal — there is no client-facing token-exchange HTTP
+   endpoint.** The harness never sees or handles the upstream credential; the
+   gateway resolves it, refreshes it if expired, and uses it to make the
+   upstream call itself, returning only the tool result over MCP. Per
+   [architecture.md](architecture.md#serverappsmeshum_gateway--the-mcp-proxy-elixirphoenix),
+   the gateway aggregates upstream tools under its own single MCP server
+   identity with `<upstream>.<tool_name>` namespacing (e.g. `jira.get_issue`)
+   — that namespace prefix is exactly what tells this step which
+   `UpstreamServer`/connection to resolve.
 4. The upstream tool sees the actual employee as the actor in its own audit
    log — native permissions and auditing apply. This is deliberate: a shared
    service credential per upstream tool was considered and rejected, because
@@ -69,9 +78,9 @@ upstream identity in v1: each employee connects their own account.
 
 ### Axis B — daemon ↔ control plane (sync)
 
-The daemon on an employee's machine polls `meshum_web` to sync
-skills/agents/config/policy locally (see
-[architecture.md](architecture.md#daemon----the-client-daemon-rust)). This
+The daemon on an employee's machine polls `meshum_web` to sync its
+`Manifest` — skills/agents/config — locally (see
+[architecture.md](architecture.md#daemon--the-client-daemon-rust)). This
 needs its own, separate credential — entirely unrelated to MCP, OAuth 2.1
 resource-server validation, or upstream token exchange.
 
@@ -95,6 +104,64 @@ resource-server validation, or upstream token exchange.
   enrollment). Enrollment issues a long-lived refresh credential once; the
   daemon exchanges it for a short-lived access token every poll cycle.
 
+The daemon's own status/capability/error reporting is **not** part of this
+sync poll — it is a deliberately separate channel (different endpoint,
+different implementation) so the two fail independently, using the same
+`MachineCredential` for verified attribution. See
+[daemon-reconciliation.md](daemon-reconciliation.md#reporting-machine-health-and-incidents).
+
+## Telemetry ingestion auth
+
+A harness that emits OpenTelemetry natively (Claude Code) sends it **directly
+to `meshum_web`**, not through the gateway or the daemon — see
+[architecture.md](architecture.md#communication) and
+[governance.md](governance.md#telemetry). This is a **third relationship**,
+separate from both axes above.
+
+**The endpoint requires a bearer token — it is not open/unauthenticated.**
+Claude Code's OTel exporter supports sending an `Authorization` header, so
+this is enforceable from the harness side.
+
+**v1 only validates that a token is present, not what
+it is or who it identifies.** No introspection, no signature check — any
+non-empty bearer token is accepted. This is a deliberate v1 simplification,
+not a permanent stance: it keeps the endpoint from being wide open (bare
+HTTP, no header) without committing to one of the three verified-attribution
+mechanisms below before the event-shape spike (see
+[control-plane.md](control-plane.md#telemetry)) settles what's actually in
+the payload. Consequence: the `user_ref_id`/`machine_id` a later aggregation
+job derives for a `TelemetryEvent` cannot be trusted as verified in v1 —
+they'd have to come from self-reported OTel attributes (e.g. `user.email` on
+individual log records/metric data points, not resource-level attributes)
+until real attribution is built. Candidates for
+that later, verified version of this endpoint (not chosen, revisit once the
+payload spike lands):
+
+- Reuse the harness's Axis A OAuth token. `meshum_web` is the AS itself, so
+  it can introspect locally with no cross-app hop, and gets verified user
+  identity for free. Open question: what happens if a harness sends
+  telemetry before ever completing the Axis A handshake (e.g. before its
+  first MCP tool call)?
+- A deployment-linked shared token (like the gateway↔web shared secret
+  below) — doesn't identify *who* sent an event by itself.
+- Axis A token when available, falling back to the daemon's existing Axis B
+  machine credential when the daemon/hooks are the ones forwarding — both
+  branches yield verified attribution, no self-report needed.
+
+**Current direction (informal):** most likely a
+deployment-linked shared secret (option 2 above), not a per-user/per-machine
+token — telemetry configuration (`OTEL_EXPORTER_OTLP_ENDPOINT`/`_HEADERS`)
+is typically synced out to every machine via company-wide settings, not
+issued per user. A spike ingesting real Claude Code OTel exports (see
+[control-plane.md](control-plane.md#observed-event-shapes-spike-findings-2026-07-10--claude-code-only))
+found that **every event self-reports `user.email` in its payload**
+regardless of what the auth token proves, so a shared-secret-only auth
+model doesn't actually block per-user attribution — it just moves
+attribution out of the (unverified) auth layer and into a later job that
+reads the payload directly. This is a direction, not a closed decision —
+still needs the "short round" this section already calls for, and the
+sample is Claude-Code-only so far.
+
 ## Gateway ↔ control plane trust
 
 The gateway process authenticates to `meshum_web`/shared logic to fetch
@@ -114,7 +181,20 @@ above implies (`server/apps/meshum`, per
   separate team field); has a `name` (auto-populated at enrollment,
   renameable) and a rotating `MachineCredential`; created atomically at the
   loopback-redirect enrollment callback, no separate code-exchange entity.
-- `Policy` — org-wide or team-scoped allow/block rules.
+  Also carries the daemon's upserted self-reported state — its compiled
+  `(operation, version)` capability table, its build/release version, and a
+  health/last-seen signal — overwritten on every report (see
+  [daemon-reconciliation.md](daemon-reconciliation.md#reporting-machine-health-and-incidents)).
+- `MachineIncident` — append-only errors from a `Machine`'s daemon
+  (`operation`, `version`, `message`, `occurred_at`), written only when an
+  operation fails or is refused; distinct from the upserted `Machine` state
+  above (see
+  [daemon-reconciliation.md](daemon-reconciliation.md#reporting-format)).
+- `ToolAccess` — org-wide or team-scoped MCP allow/block rules (runtime,
+  gateway-consumed per call, fails closed). The other half — declarative
+  desired state — is the `Manifest`, which is not a schema row here but a
+  document over `Distributable`/config (see
+  [control-plane.md](control-plane.md#version-controlled-desired-state-yaml)).
 - `UpstreamServer` — a registered upstream MCP tool (Jira, GitHub, …) and
   Meshum's own OAuth client registration with it.
 - `UpstreamConnection` — a specific employee's linked account with an

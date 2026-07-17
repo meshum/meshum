@@ -27,8 +27,12 @@ How this folder works (decided by Wannes Gennar, 2026-07-08):
   authorization server.
 - [governance.md](governance.md) — what governance means for v1, philosophy,
   out-of-scope list.
+- [daemon-reconciliation.md](daemon-reconciliation.md) — how the daemon
+  realises `Manifest` intent locally: capability routing, the closed-vocabulary
+  operation model, capability self-reporting, and machine-health reporting.
 - [control-plane.md](control-plane.md) — `meshum_web` design: navigation,
-  policy UI, skill/agent distribution, machines, telemetry.
+  tool-access (policy) UI, skill/agent distribution, version-controlled
+  desired state (YAML import/apply), machines, telemetry.
 - [quality.md](quality.md) — quality requirements per language/component.
 - [ai-context.md](ai-context.md) — how AI instruction files, rule files, and
   skills/agents are organised.

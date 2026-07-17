@@ -32,8 +32,9 @@ configuration — the wipe-and-restart cycle stays cheap.
   is decoupled from Meshum's Postgres service.
 - **Realm authoring:** the realm is configured once through the Keycloak admin
   UI, then exported with `kc.sh export --realm …` and committed. The concrete
-  client(s), users, and group claims live in the exported JSON itself — they
-  are not enumerated here (maintainer-managed).
+  client(s), users, and group claims live in the exported JSON itself
+  (maintainer-managed); the seed users are summarized in
+  [Seed users](#seed-users) below for convenience.
 
 ## Alternatives considered
 
@@ -71,3 +72,18 @@ Meshum consumes the dev IdP through `assent` (already chosen in
 in `config/dev.exs` pointing at the Keycloak realm issuer and the seeded
 client credentials. This is dev configuration only; there is no production
 equivalent.
+
+## Seed users
+
+The exported realm ships three human users for exercising the login flow.
+Each has the password `password`.
+
+| Username | Email | Team (`groups` claim) | Behaviour |
+|---|---|---|---|
+| `engineer` | engineer@localhost | `/engineering` | Single team — logs in normally |
+| `marketing` | marketing@localhost | `/marketing` | Single team — logs in normally |
+| `multi-team` | multi-team@localhost | `/engineering`, `/marketing` | Multiple groups — Meshum rejects with the ambiguous-team 403 page (see `Meshum.Identity.sync_from_claims/1`); use this to exercise that path |
+
+The realm also contains a `service-account-meshum` entry — that is the
+client-credentials service account for the `meshum` OAuth client, not a human
+login, and carries no group membership.
