@@ -5,11 +5,10 @@ defmodule MeshumGateway.ConnCase do
 
   Such tests rely on `Phoenix.ConnTest` and also
   import other functionality to make it easier
-  to build common data structures and query the data layer.
+  to build common data structures.
 
-  Finally, if the test case interacts with the database via `Meshum.Repo`,
-  we enable the SQL sandbox, so changes done to the database are reverted
-  at the end of every test.
+  `meshum_gateway` holds no database connection of its own (see
+  docs/architecture.md), so there is no SQL sandbox to set up here.
   """
 
   use ExUnit.CaseTemplate
@@ -28,13 +27,7 @@ defmodule MeshumGateway.ConnCase do
     end
   end
 
-  setup tags do
-    # `Meshum.DataCase` (meshum's own test/support) isn't compiled into
-    # this app's test build, so this checkout is inlined rather than
-    # shared — same logic as `Meshum.DataCase.setup_sandbox/1`.
-    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(Meshum.Repo, shared: not tags[:async])
-    on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
-
+  setup _tags do
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end

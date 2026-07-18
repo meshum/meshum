@@ -45,6 +45,28 @@ defmodule MeshumWeb.Router do
     get "/settings", PageController, :section
   end
 
+  scope "/oauth", MeshumWeb.Controllers.Oauth do
+    pipe_through :api
+
+    post "/revoke", RevokeController, :revoke
+    post "/token", TokenController, :token
+    post "/introspect", IntrospectController, :introspect
+  end
+
+  scope "/openid", MeshumWeb.Controllers.Openid do
+    pipe_through [:api]
+
+    get "/userinfo", UserinfoController, :userinfo
+    post "/userinfo", UserinfoController, :userinfo
+    get "/jwks", JwksController, :jwks_index
+  end
+
+  scope "/openid", MeshumWeb.Controllers.Openid do
+    pipe_through [:browser, :fetch_current_user]
+
+    get "/authorize", AuthorizeController, :authorize
+  end
+
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:meshum_web, :dev_routes) do
     # If you want to use the LiveDashboard in production, you should put

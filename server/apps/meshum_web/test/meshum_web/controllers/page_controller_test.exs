@@ -1,5 +1,5 @@
 defmodule MeshumWeb.PageControllerTest do
-  use MeshumWeb.ConnCase
+  use MeshumWeb.ConnCase, async: true
 
   describe "MeshumWeb.PageController.home/2" do
     test "renders the dashboard within the app shell", %{conn: conn} do

@@ -4,7 +4,9 @@
 > (upstream registration is MCP-client discovery + DCR with a manual fallback;
 > the gateway validates Axis A JWTs statelessly via JWKS and owns no data;
 > bounded credential liveness forces every credential chain back through the
-> IdP at least once per bounded window).
+> IdP at least once per bounded window); amended 2026-07-19 (the gateway does
+> **not** depend on `meshum`; the gateway↔web transport/auth is `UNDECIDED`,
+> BEAM clustering rejected for it).
 > Items marked `UNDECIDED` are open; do not assume an answer for them.
 
 This page covers who/what Meshum authenticates, how tenancy works, and — the
@@ -98,16 +100,17 @@ It never reads the AS's storage and never depends on `boruta` internals.
 - **Single data owner; the gateway owns no data.** `boruta` and all token
   issuance live behind `meshum_web` (the authorization server). The gateway's
   **only two contact surfaces** are (a) the public JWKS endpoint above and
-  (b) `meshum`'s function API — for `ToolAccess` decisions and
-  `UpstreamConnection` resolution, consistent with the "all schema and
-  evaluation logic live in `server/apps/meshum`" rule in
+  (b) an authenticated network call to `meshum_web` for policy (`ToolAccess`
+  decisions, `UpstreamServer` config) and `UpstreamConnection` resolution. The
+  gateway does **not** depend on `meshum` as a library — that evaluation logic
+  lives behind `meshum_web`, consistent with the "all schema and evaluation
+  logic live in `server/apps/meshum`" rule in
   [architecture.md](architecture.md#serverappsmeshum--shared-business-logic-elixir).
   This keeps the gateway decoupled from the AS implementation and separable
-  from the umbrella later. (Where surface (b) crosses a process boundary —
-  the gateway fetching policy — that hop is authenticated by the
-  [gateway ↔ control plane trust](#gateway--control-plane-trust)
-  deployment-level shared secret; surface (a) needs no secret, the JWKS is
-  public.)
+  from the umbrella later. (Surface (b) crosses a trust boundary — the gateway
+  fetching policy — whose transport and authentication are `UNDECIDED`; see
+  [gateway ↔ control plane trust](#gateway--control-plane-trust). Surface (a)
+  needs no secret, the JWKS is public.)
 
 #### Registering an upstream (admin)
 
@@ -273,8 +276,9 @@ payload spike lands):
   identity for free. Open question: what happens if a harness sends
   telemetry before ever completing the Axis A handshake (e.g. before its
   first MCP tool call)?
-- A deployment-linked shared token (like the gateway↔web shared secret
-  below) — doesn't identify *who* sent an event by itself.
+- A deployment-linked shared token (analogous to the gateway↔web
+  deployment-level trust below) — doesn't identify *who* sent an event by
+  itself.
 - Axis A token when available, falling back to the daemon's existing Axis B
   machine credential when the daemon/hooks are the ones forwarding — both
   branches yield verified attribution, no self-report needed.
@@ -295,10 +299,27 @@ sample is Claude-Code-only so far.
 
 ## Gateway ↔ control plane trust
 
-The gateway process authenticates to `meshum_web`/shared logic to fetch
-policy using a **deployment-level shared secret** for v1 (gateway and web run
-in the same trust boundary per [architecture.md](architecture.md)). Flagged
-to harden later (e.g. per-process credential) — not now.
+The gateway reaches `meshum_web` over the network for the two things it needs
+on the hot path: **policy** (`ToolAccess` rules and `UpstreamServer` config —
+cacheable, non-secret) and **`UpstreamConnection` resolution** (per-user
+upstream OAuth secrets, which stay authoritative in the control plane and are
+**never replicated** to the gateway). The gateway does **not** depend on
+`meshum` as a library or OTP application; it holds no policy schema of its own.
+
+- **Transport and authentication: `UNDECIDED`.** The exact mechanism (HTTP,
+  WebSocket, gRPC, …) and how the hop is authenticated are deliberately left
+  open, deferred until MCP calls are actually being tested. Do not assume a
+  specific scheme.
+- **Distributed Erlang / BEAM clustering between gateway and web was
+  considered and rejected** for this hop: distributed Erlang authenticates the
+  *connection*, not individual operations — once two nodes are connected either
+  can `:rpc.call` into the other's full VM. The gateway is the internet-facing,
+  highest-exposure component, so a gateway compromise would become a full
+  control-plane compromise (Boruta/AS secrets, encryption keys, everything in
+  memory). (Clustering *within* a single app — e.g. multiple `meshum_web`
+  replicas sharing `Phoenix.PubSub` for live-updating LiveView — is unaffected
+  and remains a valid future design; only the cross-service gateway↔web case is
+  rejected.)
 
 ## Schema sketch
 
@@ -339,7 +360,10 @@ above implies (`server/apps/meshum`, per
   `UpstreamServer` (access/refresh tokens, encrypted at rest).
 
 The authorization server's own client/token tables are not sketched here —
-they come from `boruta`.
+they come from `boruta`'s schema, vendored as plain `Ecto.Migration` DSL into
+`apps/meshum/priv/repo/migrations` (mechanically extracted from `boruta`'s
+migration macros, not a live dependency) so that `meshum` has zero dependency
+on `boruta` while still using the single shared `Meshum.Repo`.
 
 ## Login flow implementation
 

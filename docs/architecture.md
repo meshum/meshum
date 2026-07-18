@@ -2,7 +2,9 @@
 
 > Status: draft — decided by Wannes Gennar, 2026-07-08; amended 2026-07-18
 > (gateway validates Axis A tokens via JWKS and owns no data — a consequence
-> of the [identity.md](identity.md) amendments of that date). Items marked
+> of the [identity.md](identity.md) amendments of that date); amended
+> 2026-07-19 (the gateway does **not** depend on `meshum`; the gateway → web
+> transport is `UNDECIDED`, BEAM clustering rejected for it). Items marked
 > `UNDECIDED` are open; do not assume an answer for them.
 
 Meshum is composed of three components (the fourth item below is a shared
@@ -58,8 +60,10 @@ auto-discovery behavior Meshum doesn't control.
 **The gateway is a thin interception seam — it holds no policy semantics of
 its own.** Its only job on the decision path is to
 extract the inputs from an incoming MCP call — the caller's `user_ref`, the
-target `upstream`, and the `tool_name` — and hand them to `meshum` for the
-actual allow/block decision. It consults that decision per call at
+target `upstream`, and the `tool_name` — and hand them off to `meshum_web` for
+the actual allow/block decision (evaluated by `meshum`'s logic, which lives
+behind `meshum_web` — the gateway does not link `meshum` itself). It consults
+that decision per call at
 `tools/call` (blocking a disallowed call) and uses it to filter the
 aggregated list at `tools/list`; the evaluation **fails closed**. No
 evaluation or rule-interpretation logic lives in the `meshum_gateway` app
@@ -70,8 +74,11 @@ are (`ToolAccess`).
 Consistently, **the gateway owns no data.** It validates a caller's Axis A
 token statelessly against `meshum_web`'s published JWKS (no read of the
 authorization server's storage, no per-call introspection hop), and its only
-two contact surfaces are that JWKS endpoint and `meshum`'s function API — see
-[identity.md](identity.md#gateway-token-validation-jwks). This keeps it
+two contact surfaces are that JWKS endpoint and an authenticated network call
+to `meshum_web` for policy and `UpstreamConnection` resolution (transport
+`UNDECIDED` — see [identity.md](identity.md#gateway--control-plane-trust)).
+**The gateway does not depend on `meshum` as a library or OTP application** —
+that logic lives behind `meshum_web`. This keeps it
 decoupled from the AS implementation and separable from the umbrella later.
 
 ### `server/apps/meshum_web` — the control plane (Elixir/Phoenix LiveView)
@@ -82,10 +89,13 @@ the gateway (server side) and the daemon (client side).
 
 ### `server/apps/meshum` — shared business logic (Elixir)
 
-Shared business logic between the gateway and web apps — **all schema and all
-evaluation/decision logic lives here, not in the callers.** The gateway and
-web app stay thin: they extract inputs and render
-results, `meshum` decides. Concretely this includes:
+The home of **all schema and all evaluation/decision logic — not in the
+callers.** `meshum_web` depends on it in-process as a library; the gateway
+does **not** depend on it (neither at compile time nor as an OTP application
+dependency) and reaches its decisions over a network hop to `meshum_web`
+instead (see [Communication](#communication) below). Both the gateway and web
+app stay thin: they extract inputs and render results, `meshum` decides.
+Concretely this includes:
 
 - **runtime tool-access evaluation** (`ToolAccess` — the MCP allow/block rules
   the gateway consults per call, fails closed; see
@@ -121,10 +131,17 @@ results, `meshum` decides. Concretely this includes:
   [identity.md](identity.md); the endpoint requires a bearer token but v1
   only checks that one is present — see
   [identity.md](identity.md#telemetry-ingestion-auth).
-- Communication method/protocol: **HTTP polling for the MVP** — both daemon →
-  web and gateway → web. This implies a **poll** sync model: changes propagate
-  on the poll interval. Better/other sync methods (push via WebSocket, gRPC, …)
-  can be added later.
+- Communication method/protocol:
+  - **daemon → web is HTTP polling for the MVP** — a **poll** sync model:
+    changes propagate on the poll interval. Better/other sync methods (push via
+    WebSocket, gRPC, …) can be added later.
+  - **gateway → web transport is `UNDECIDED`.** This is a per-call *hot path*
+    (policy and `UpstreamConnection` resolution), not a poll, so it is not
+    covered by the daemon's polling model. The exact mechanism (HTTP,
+    WebSocket, gRPC, …) is deliberately deferred until MCP calls are actually
+    being tested. Distributed-Erlang / BEAM clustering between the two was
+    considered and **rejected** for this hop — see
+    [identity.md](identity.md#gateway--control-plane-trust).
 
 ## Deployment model
 

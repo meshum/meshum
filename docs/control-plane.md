@@ -263,7 +263,8 @@ wasn't specifically interviewed and should be treated as ordinary
 implementation detail rather than settled architecture — flagging that
 explicitly rather than assuming, since it simply wasn't challenged yet.
 Settings presumably houses deployment-level config (IdP connection, the
-gateway↔control-plane shared secret from identity.md, etc.).
+gateway↔control-plane trust config from identity.md — whose transport/auth is
+`UNDECIDED` — etc.).
 
 ## Schema sketch
 

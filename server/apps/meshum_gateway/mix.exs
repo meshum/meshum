@@ -37,7 +37,6 @@ defmodule MeshumGateway.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:meshum, in_umbrella: true},
       {:phoenix, "~> 1.8.8"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},

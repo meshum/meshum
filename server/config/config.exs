@@ -62,6 +62,12 @@ config :tailwind,
 config :meshum_gateway,
   generators: [context_app: false]
 
+# Configure Boruta
+config :meshum_web, :oauth_module, Boruta.Oauth
+config :meshum_web, :openid_module, Boruta.Openid
+
+config :boruta, Boruta.Oauth, repo: Meshum.Repo
+
 # Configures the endpoint
 config :meshum_gateway, MeshumGateway.Endpoint,
   url: [host: "localhost"],

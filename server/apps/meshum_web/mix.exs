@@ -63,7 +63,9 @@ defmodule MeshumWeb.MixProject do
       {:sobelow, "~> 0.14", only: [:dev, :test], runtime: false, warn_if_outdated: true},
       {:tidewave, "~> 0.6", only: :dev},
       {:assent, "~> 0.3"},
-      {:req, "~> 0.6"}
+      {:req, "~> 0.6"},
+      {:boruta, "~> 2.3"},
+      {:mox, "~> 1.2", only: :test}
     ]
   end
 
