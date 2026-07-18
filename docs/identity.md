@@ -1,7 +1,11 @@
 # Identity, tenancy & auth
 
-> Status: draft — decided by Wannes Gennar, 2026-07-08. Items marked
-> `UNDECIDED` are open; do not assume an answer for them.
+> Status: draft — decided by Wannes Gennar, 2026-07-08; amended 2026-07-18
+> (upstream registration is MCP-client discovery + DCR with a manual fallback;
+> the gateway validates Axis A JWTs statelessly via JWKS and owns no data;
+> bounded credential liveness forces every credential chain back through the
+> IdP at least once per bounded window).
+> Items marked `UNDECIDED` are open; do not assume an answer for them.
 
 This page covers who/what Meshum authenticates, how tenancy works, and — the
 part most likely to be misread — **two fully independent auth relationships
@@ -19,9 +23,12 @@ multi-tenant database. There is no `org_id` anywhere in the schema.
 Meshum does **not** own user or team identity/membership — the customer's
 identity provider (IdP) does (Entra, Okta, …). Meshum keeps lightweight
 **cached mirror rows** for users and teams, refreshed from IdP claims at
-login, existing only so machines, policies, and telemetry have something
-stable to point at. Single team per machine/user — no multi-team precedence
-rules in v1.
+login and re-verified against the IdP at least once per bounded window (see
+[Bounded credential liveness](#bounded-credential-liveness) —
+without which an offboarded user's mirror row, and their outstanding
+credentials, would freeze at their healthiest state), existing only so
+machines, policies, and telemetry have something stable to point at. Single
+team per machine/user — no multi-team precedence rules in v1.
 
 ## The two axes
 
@@ -36,8 +43,10 @@ to `meshum_gateway`. This is pure MCP-spec territory:
    (OIDC); the harness self-registers as an OAuth client via **Dynamic Client
    Registration (RFC 7591)** since there's no human available to
    pre-register it.
-2. The gateway validates that token per call and checks org/team allow-block
-   policy (see [governance.md](governance.md)).
+2. The gateway validates that token per call — statelessly, against
+   `meshum_web`'s published JWKS, never by reading the AS's storage (see
+   [Gateway token validation](#gateway-token-validation-jwks)) — and checks
+   org/team allow-block policy (see [governance.md](governance.md)).
 3. If the call targets an upstream tool (Jira, GitHub, …), the gateway
    exchanges (RFC 8693 token-exchange semantics) the caller's Meshum token
    for a per-user, upstream-tool-scoped token, using an upstream connection
@@ -70,6 +79,71 @@ serves as a template) plus `.well-known` discovery advertisement. Rate
 limiting/abuse policy on that endpoint is Meshum's own responsibility either
 way.
 
+#### Gateway token validation (JWKS)
+
+Axis A access tokens are **signed JWTs** (the RFC 9068 JWT-access-token
+profile): `sub` = the `UserRef`, `aud` = the gateway, `exp` ≈ 10 minutes
+(short-lived). The gateway validates each call's token by checking its
+signature against `meshum_web`'s published **JWKS** (fetched and cached) and
+its `aud`/`exp` against expected values — **stateless, per-call, with no
+network hop to the AS.**
+It never reads the AS's storage and never depends on `boruta` internals.
+
+- **Per-call introspection (RFC 7662) was considered and rejected for the hot
+  path.** Introspection buys instant revocation, but at the cost of a network
+  round-trip to the AS on every tool call. JWT + short TTL bounds the
+  revocation window instead, and revocation is gated at the refresh grant (see
+  [Bounded credential liveness](#bounded-credential-liveness)) — not on the
+  per-call path.
+- **Single data owner; the gateway owns no data.** `boruta` and all token
+  issuance live behind `meshum_web` (the authorization server). The gateway's
+  **only two contact surfaces** are (a) the public JWKS endpoint above and
+  (b) `meshum`'s function API — for `ToolAccess` decisions and
+  `UpstreamConnection` resolution, consistent with the "all schema and
+  evaluation logic live in `server/apps/meshum`" rule in
+  [architecture.md](architecture.md#serverappsmeshum--shared-business-logic-elixir).
+  This keeps the gateway decoupled from the AS implementation and separable
+  from the umbrella later. (Where surface (b) crosses a process boundary —
+  the gateway fetching policy — that hop is authenticated by the
+  [gateway ↔ control plane trust](#gateway--control-plane-trust)
+  deployment-level shared secret; surface (a) needs no secret, the JWKS is
+  public.)
+
+#### Registering an upstream (admin)
+
+Registering an `UpstreamServer` collapses to **"paste the upstream MCP URL"**
+(e.g. GitHub at `https://api.githubcopilot.com/mcp/`). `meshum_web` then
+probes that URL **as a spec-compliant MCP client** and obtains the OAuth
+client credentials itself, rather than asking the admin to supply them:
+
+1. Unauthenticated request → `401` → the upstream's **RFC 9728
+   protected-resource metadata** → its **authorization-server metadata
+   (RFC 8414)**.
+2. **If the upstream AS advertises a registration endpoint**, Meshum
+   dynamically registers itself via **Dynamic Client Registration (RFC 7591)**
+   — **one client registration per deployment**, `redirect_uris` pointing at
+   `meshum_web`'s callback — and stores the issued credentials on
+   `UpstreamServer` with `provenance: dynamic`.
+3. **If no DCR is advertised**, the UI falls back to **manual entry** of a
+   client id/secret (`provenance: manual`). Manual is the fallback, not the
+   default.
+
+Both provenances yield an **identical row downstream**: a `url` plus usable
+client credentials. Nothing after this point differs by provenance.
+
+- **Rationale — symmetry.** Meshum consumes the exact same discovery/DCR
+  handshake *as a client* toward upstreams that it *serves* toward harnesses
+  (Axis A step 1 above): an upstream you can install by pointing Claude at a
+  bare URL should be installable in Meshum the same way. DCR support among
+  upstream authorization servers is uneven in practice, hence the manual
+  fallback. (Implementation note: verify GitHub's actual DCR behaviour at
+  implementation time.)
+- **Everything downstream is unchanged.** Per-employee `UpstreamConnection`
+  consent (below), gateway-internal token exchange (Axis A step 3), and
+  employee-as-actor at the upstream (step 4) are exactly as before — this
+  amendment only changes how the admin obtains the `UpstreamServer`'s own
+  client credentials.
+
 **Upstream connections are self-serve and proactive, not lazy.** An employee
 logs into `meshum_web` directly and explicitly connects each upstream
 account (Jira, GitHub, …) there — a one-time OAuth consent per tool — before
@@ -101,14 +175,71 @@ resource-server validation, or upstream token exchange.
   team) — a machine does not carry an independent team assignment.
 - **Credential shape:** short-lived access token with refresh
   (client-credentials-style, no human interaction on each poll after
-  enrollment). Enrollment issues a long-lived refresh credential once; the
-  daemon exchanges it for a short-lived access token every poll cycle.
+  enrollment). Enrollment issues a refresh credential; the daemon exchanges it
+  for a short-lived access token every poll cycle. The refresh credential is
+  **not** unbounded — it carries the same absolute lifetime as an Axis A
+  refresh token, and the daemon re-runs this loopback enrollment (silent under
+  a warm IdP session) when that bound expires, so an offboarded user's machine
+  cannot keep syncing indefinitely (see
+  [Bounded credential liveness](#bounded-credential-liveness)). On an
+  already-enrolled machine that re-run rotates the existing `Machine`'s
+  `MachineCredential` — it never creates a second `Machine` row.
 
 The daemon's own status/capability/error reporting is **not** part of this
 sync poll — it is a deliberately separate channel (different endpoint,
 different implementation) so the two fail independently, using the same
 `MachineCredential` for verified attribution. See
 [daemon-reconciliation.md](daemon-reconciliation.md#reporting-machine-health-and-incidents).
+
+## Bounded credential liveness
+
+> Decided by Wannes Gennar, 2026-07-18.
+
+**Problem.** `UserRef`/`TeamRef` mirror rows refresh only at login (see
+[Identity ownership](#identity-ownership)), so an IdP-revoked (offboarded)
+user's row freezes at its healthiest state — and, worse, their outstanding
+credentials (harness refresh token, daemon `MachineCredential`, stored
+upstream tokens) would keep working **indefinitely**. For a governance
+product, retained access after offboarding is the headline risk; the stale
+dashboard row is only the symptom. The fix is twofold: every issuance
+re-checks the local `status` mirror, and every credential chain is forced
+back through a **fresh IdP round-trip at least once per bounded window**
+(stored upstream tokens carry no bound of their own — they are exercisable
+only through a live, bounded Axis A token, so they are gated transitively):
+
+- **Refresh grants are a revocation gate.** Before issuing a new access
+  token, `meshum_web` re-checks the `UserRef`'s `status`. The grant itself
+  never contacts the IdP, so this gate only bites once something has flipped
+  that status — a manual offboarding action in v1, SCIM later. IdP-side
+  revocation that nothing has mirrored into `status` propagates through the
+  absolute lifetime bound below instead, not through this gate.
+- **Refresh tokens have a bounded absolute lifetime (~7 days, configurable).**
+  They cannot be renewed past it; only a fresh IdP-federated interactive
+  re-auth (silent under a warm SSO session) issues new ones. Worst-case
+  retained access after IdP revocation is exactly this bound.
+- **Axis B machine credentials carry the same absolute bound.** When it
+  expires, the daemon re-runs its loopback flow (see
+  [Axis B](#axis-b--daemon--control-plane-sync)) — silent under warm SSO —
+  re-issuing the existing `Machine`'s credential rather than refreshing
+  indefinitely (it never enrolls a duplicate `Machine`).
+- **`UserRef.last_verified_at` is stamped at every successful IdP
+  round-trip** — web login, Axis A auth/re-auth, and Axis B enrollment.
+  Dashboards treat rows older than the bound as **inactive** (a view derived
+  from `last_verified_at`; an explicit `status` flip — manual offboarding
+  now, SCIM later — also marks it): flagged and
+  filtered from active views, but **never deleted** — a departed employee's
+  historical telemetry must stay attributable. Schema should therefore leave
+  room for a `status` field on `UserRef` (active/inactive), not just
+  timestamps (see [Schema sketch](#schema-sketch)).
+
+**Later, authoritative fix (post-v1): SCIM 2.0 inbound provisioning.** Entra
+and Okta both support pushing user-lifecycle events; consuming them gives
+near-real-time deactivation instead of a bounded-window lag. This is
+explicitly **post-v1** and was chosen over periodic per-IdP directory
+polling, which would need exactly the per-customer glue
+[`assent`](#login-flow-implementation) was chosen to avoid. The
+bounded-liveness mechanism above is the v1
+answer; SCIM tightens the window later.
 
 ## Telemetry ingestion auth
 
@@ -176,7 +307,11 @@ above implies (`server/apps/meshum`, per
 [`.claude/rules/ecto.md`](../.claude/rules/ecto.md) conventions):
 
 - `TeamRef` — cached IdP team/group.
-- `UserRef` — cached IdP user, belongs to a `TeamRef`.
+- `UserRef` — cached IdP user, belongs to a `TeamRef`. Carries
+  `last_verified_at` (stamped at every successful IdP round-trip) and room for
+  a `status` field (active/inactive) so offboarded users can be flagged and
+  filtered without deleting their attributable history — see
+  [Bounded credential liveness](#bounded-credential-liveness).
 - `Machine` — belongs to an owning `UserRef` (team resolved transitively, no
   separate team field); has a `name` (auto-populated at enrollment,
   renameable) and a rotating `MachineCredential`; created atomically at the
@@ -195,8 +330,11 @@ above implies (`server/apps/meshum`, per
   desired state — is the `Manifest`, which is not a schema row here but a
   document over `Distributable`/config (see
   [control-plane.md](control-plane.md#version-controlled-desired-state-yaml)).
-- `UpstreamServer` — a registered upstream MCP tool (Jira, GitHub, …) and
-  Meshum's own OAuth client registration with it.
+- `UpstreamServer` — a registered upstream MCP tool (Jira, GitHub, …): its
+  `url` plus Meshum's own OAuth client credentials with it, and a `provenance`
+  (`dynamic` — obtained via RFC 7591 DCR — or `manual`). Both provenances
+  yield the same usable shape downstream — see
+  [Registering an upstream (admin)](#registering-an-upstream-admin).
 - `UpstreamConnection` — a specific employee's linked account with an
   `UpstreamServer` (access/refresh tokens, encrypted at rest).
 

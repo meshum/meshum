@@ -147,8 +147,10 @@ Employees self-serve connect their own accounts (Jira, GitHub, …) here via
 one-time OAuth consent, using registered `UpstreamServer`s — see
 [identity.md](identity.md#axis-a--ai-harness--gateway-the-mcp-tool-call-path).
 Since there's no role split in v1, this page shows "your connections" and is
-reachable by everyone; registering new `UpstreamServer` types presumably
-lives on the same flat surface.
+reachable by everyone; registering new `UpstreamServer` types — paste the
+upstream MCP URL, discovery/DCR does the rest (see
+[identity.md](identity.md#registering-an-upstream-admin)) — presumably lives
+on the same flat surface.
 
 ## Telemetry
 

@@ -1,6 +1,8 @@
 # Architecture
 
-> Status: draft — decided by Wannes Gennar, 2026-07-08. Items marked
+> Status: draft — decided by Wannes Gennar, 2026-07-08; amended 2026-07-18
+> (gateway validates Axis A tokens via JWKS and owns no data — a consequence
+> of the [identity.md](identity.md) amendments of that date). Items marked
 > `UNDECIDED` are open; do not assume an answer for them.
 
 Meshum is composed of three components (the fourth item below is a shared
@@ -64,6 +66,13 @@ evaluation or rule-interpretation logic lives in the `meshum_gateway` app
 itself — that is `meshum`'s (see below). See
 [governance.md](governance.md#tool-access-granularity) for what those rules
 are (`ToolAccess`).
+
+Consistently, **the gateway owns no data.** It validates a caller's Axis A
+token statelessly against `meshum_web`'s published JWKS (no read of the
+authorization server's storage, no per-call introspection hop), and its only
+two contact surfaces are that JWKS endpoint and `meshum`'s function API — see
+[identity.md](identity.md#gateway-token-validation-jwks). This keeps it
+decoupled from the AS implementation and separable from the umbrella later.
 
 ### `server/apps/meshum_web` — the control plane (Elixir/Phoenix LiveView)
 
