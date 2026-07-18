@@ -10,6 +10,12 @@ defmodule MeshumWeb.PageControllerTest do
       assert html =~ "Skills &amp; Agents"
       assert html =~ ~s(href="/telemetry")
     end
+
+    test "redirects to /auth/login when no user is signed in", %{conn: conn} do
+      conn = conn |> log_out_user() |> get(~p"/")
+
+      assert redirected_to(conn) == "/auth/login"
+    end
   end
 
   describe "MeshumWeb.PageController.section/2" do

@@ -4,20 +4,21 @@ defmodule MeshumWeb.Router do
   """
   use MeshumWeb, :router
 
-  import MeshumWeb.Plugs.Auth, only: [requires_user: 2]
+  import MeshumWeb.Plugs.Auth, only: [requires_user: 2, fetch_current_user: 2]
 
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
+    plug :fetch_current_user
     plug :put_root_layout, html: {MeshumWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug MeshumWeb.Plugs.Csp
   end
 
-  pipeline :auth do
-    plug :requires_user
+  pipeline :api do
+    plug :accepts, ["json"]
   end
 
   scope "/auth", MeshumWeb.Controllers.Auth do
@@ -30,7 +31,7 @@ defmodule MeshumWeb.Router do
   end
 
   scope "/", MeshumWeb do
-    pipe_through [:browser, :auth]
+    pipe_through [:browser, :requires_user]
 
     get "/", PageController, :home
 

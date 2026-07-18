@@ -41,12 +41,35 @@ defmodule MeshumWeb.Plugs.AuthTest do
     end
   end
 
+  describe "MeshumWeb.Plugs.Auth.fetch_current_user/2" do
+    test "assigns :current_user when :user_info is present in the session", %{conn: conn} do
+      user = MeshumWeb.Test.IdpUsers.github()
+
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{})
+        |> Plug.Conn.put_session(:user_info, user)
+        |> Auth.fetch_current_user([])
+
+      assert conn.assigns.current_user == user
+    end
+
+    test "leaves the connection unchanged when :user_info is absent", %{conn: conn} do
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{})
+        |> Auth.fetch_current_user([])
+
+      refute Map.has_key?(conn.assigns, :current_user)
+    end
+  end
+
   describe "MeshumWeb.Plugs.Auth.requires_user/2" do
     setup do
       %{user: MeshumWeb.Test.IdpUsers.github()}
     end
 
-    test "assigns :current_user and continues when a user is in the session", %{
+    test "continues without redirecting when :current_user is already assigned", %{
       conn: conn,
       user: user
     } do
@@ -55,6 +78,7 @@ defmodule MeshumWeb.Plugs.AuthTest do
         |> Plug.Test.init_test_session(%{})
         |> Plug.Conn.put_session(:user_info, user)
         |> fetch_flash()
+        |> Auth.fetch_current_user([])
         |> Auth.requires_user([])
 
       assert conn.assigns.current_user == user
@@ -62,11 +86,14 @@ defmodule MeshumWeb.Plugs.AuthTest do
       assert conn.status != 302
     end
 
-    test "redirects to /auth/login with a flash when no user is in the session", %{conn: conn} do
+    test "redirects to /auth/login with a flash when no :current_user is assigned", %{
+      conn: conn
+    } do
       conn =
         conn
         |> Plug.Test.init_test_session(%{})
         |> fetch_flash()
+        |> Auth.fetch_current_user([])
         |> Auth.requires_user([])
 
       assert conn.halted
@@ -90,11 +117,14 @@ defmodule MeshumWeb.Plugs.AuthTest do
         assert Auth.get_current_user(conn) == unquote(Macro.escape(user))
       end
 
-      test "requires_user/2 assigns the same map as :current_user", %{conn: conn} do
+      test "fetch_current_user/2 then requires_user/2 assigns the same map as :current_user", %{
+        conn: conn
+      } do
         conn =
           conn
           |> Plug.Test.init_test_session(%{})
           |> Auth.set_current_user(unquote(Macro.escape(user)))
+          |> Auth.fetch_current_user([])
           |> Auth.requires_user([])
 
         assert conn.assigns.current_user == unquote(Macro.escape(user))
