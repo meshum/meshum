@@ -1,6 +1,7 @@
 defmodule MeshumWeb.Plugs.AuthTest do
   use MeshumWeb.ConnCase, async: true
 
+  alias MeshumWeb.Auth.User
   alias MeshumWeb.Plugs.Auth
 
   describe "MeshumWeb.Plugs.Auth.set_current_user/2" do
@@ -42,7 +43,7 @@ defmodule MeshumWeb.Plugs.AuthTest do
   end
 
   describe "MeshumWeb.Plugs.Auth.fetch_current_user/2" do
-    test "assigns :current_user when :user_info is present in the session", %{conn: conn} do
+    test "assigns a MeshumWeb.Auth.User built from :user_info in the session", %{conn: conn} do
       user = MeshumWeb.Test.IdpUsers.github()
 
       conn =
@@ -51,7 +52,7 @@ defmodule MeshumWeb.Plugs.AuthTest do
         |> Plug.Conn.put_session(:user_info, user)
         |> Auth.fetch_current_user([])
 
-      assert conn.assigns.current_user == user
+      assert conn.assigns.current_user == User.from_claims(user)
     end
 
     test "leaves the connection unchanged when :user_info is absent", %{conn: conn} do
@@ -81,7 +82,7 @@ defmodule MeshumWeb.Plugs.AuthTest do
         |> Auth.fetch_current_user([])
         |> Auth.requires_user([])
 
-      assert conn.assigns.current_user == user
+      assert conn.assigns.current_user == User.from_claims(user)
       refute conn.halted
       assert conn.status != 302
     end
@@ -117,9 +118,8 @@ defmodule MeshumWeb.Plugs.AuthTest do
         assert Auth.get_current_user(conn) == unquote(Macro.escape(user))
       end
 
-      test "fetch_current_user/2 then requires_user/2 assigns the same map as :current_user", %{
-        conn: conn
-      } do
+      test "fetch_current_user/2 then requires_user/2 assigns a User built from the same claims",
+           %{conn: conn} do
         conn =
           conn
           |> Plug.Test.init_test_session(%{})
@@ -127,7 +127,10 @@ defmodule MeshumWeb.Plugs.AuthTest do
           |> Auth.fetch_current_user([])
           |> Auth.requires_user([])
 
-        assert conn.assigns.current_user == unquote(Macro.escape(user))
+        authenticated_at = Plug.Conn.get_session(conn, :authenticated_at)
+
+        assert conn.assigns.current_user ==
+                 User.from_claims(unquote(Macro.escape(user)), authenticated_at)
       end
     end
   end

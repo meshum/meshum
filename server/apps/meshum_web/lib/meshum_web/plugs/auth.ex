@@ -12,9 +12,12 @@ defmodule MeshumWeb.Plugs.Auth do
 
   use MeshumWeb, :verified_routes
 
+  alias MeshumWeb.Auth.User
+
   @doc """
-  If user information is present in the session, assigns it to `:current_user` in the connection.
-  Otherwise, the connection remains unchanged.
+  If user information is present in the session, builds a `MeshumWeb.Auth.User`
+  from it and assigns it to `:current_user` in the connection. Otherwise, the
+  connection remains unchanged.
   """
   def fetch_current_user(conn, _opts) do
     case get_current_user(conn) do
@@ -22,7 +25,8 @@ defmodule MeshumWeb.Plugs.Auth do
         conn
 
       user_info ->
-        assign(conn, :current_user, user_info)
+        authenticated_at = get_session(conn, :authenticated_at)
+        assign(conn, :current_user, User.from_claims(user_info, authenticated_at))
     end
   end
 
@@ -43,10 +47,14 @@ defmodule MeshumWeb.Plugs.Auth do
   end
 
   @doc """
-  Sets the given user information in the session as the current user.
+  Sets the given user information in the session as the current user, and
+  stamps the moment of this IdP round-trip so `fetch_current_user/2` can
+  populate `MeshumWeb.Auth.User.authenticated_at`.
   """
   def set_current_user(conn, user_info) do
-    put_session(conn, :user_info, user_info)
+    conn
+    |> put_session(:user_info, user_info)
+    |> put_session(:authenticated_at, DateTime.utc_now())
   end
 
   @doc """

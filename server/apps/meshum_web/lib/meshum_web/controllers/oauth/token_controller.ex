@@ -1,4 +1,12 @@
 defmodule MeshumWeb.Controllers.Oauth.TokenController do
+  @moduledoc """
+  The OAuth 2.0 `/oauth/token` endpoint: delegates every grant type to
+  `Boruta.Oauth.token/2` and renders the resulting `TokenResponse` (or error)
+  via the `Boruta.Oauth.TokenApplication` callbacks. Also backs the OIDC
+  token endpoint — an `id_token` simply appears in the same response when the
+  grant included the `openid` scope.
+  """
+
   @behaviour Boruta.Oauth.TokenApplication
 
   use MeshumWeb, :controller
@@ -10,6 +18,7 @@ defmodule MeshumWeb.Controllers.Oauth.TokenController do
   @doc "The `Boruta.Oauth` implementation to dispatch to; overridden in tests via Mox."
   def oauth_module, do: Application.get_env(:meshum_web, :oauth_module, Boruta.Oauth)
 
+  @doc "Exchanges the request's grant for a token."
   def token(%Plug.Conn{} = conn, _params) do
     conn |> oauth_module().token(__MODULE__)
   end

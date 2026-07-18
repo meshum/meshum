@@ -1,4 +1,10 @@
 defmodule MeshumWeb.Controllers.Oauth.RevokeController do
+  @moduledoc """
+  The OAuth 2.0 token revocation endpoint (RFC 7009): delegates to
+  `Boruta.Oauth.revoke/2` and reports success/failure via the
+  `Boruta.Oauth.RevokeApplication` callbacks.
+  """
+
   @behaviour Boruta.Oauth.RevokeApplication
 
   use MeshumWeb, :controller
@@ -9,6 +15,7 @@ defmodule MeshumWeb.Controllers.Oauth.RevokeController do
   @doc "The `Boruta.Oauth` implementation to dispatch to; overridden in tests via Mox."
   def oauth_module, do: Application.get_env(:meshum_web, :oauth_module, Boruta.Oauth)
 
+  @doc "Revokes the token carried by the request."
   def revoke(%Plug.Conn{} = conn, _params) do
     conn |> oauth_module().revoke(__MODULE__)
   end

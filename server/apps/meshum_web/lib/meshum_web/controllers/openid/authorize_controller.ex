@@ -1,4 +1,14 @@
 defmodule MeshumWeb.Controllers.Openid.AuthorizeController do
+  @moduledoc """
+  The OIDC `/openid/authorize` endpoint: the same authorization flow as
+  `MeshumWeb.Controllers.Oauth.AuthorizeController`, plus the OIDC-specific
+  `prompt`/`max_age` redirections (`prompt=login` forces a fresh login,
+  `prompt=none` errors instead of prompting, `max_age` forces re-login once
+  the resource owner's last login is stale) before delegating to
+  `Boruta.Oauth.authorize/3` via the `Boruta.Oauth.AuthorizeApplication`
+  callbacks.
+  """
+
   @behaviour Boruta.Oauth.AuthorizeApplication
 
   use MeshumWeb, :controller
@@ -6,11 +16,17 @@ defmodule MeshumWeb.Controllers.Openid.AuthorizeController do
   alias Boruta.Oauth.AuthorizeResponse
   alias Boruta.Oauth.Error
   alias Boruta.Oauth.ResourceOwner
+  alias MeshumWeb.Auth.User
   alias MeshumWeb.Controllers.Oauth.OauthHTML
 
   @doc "The `Boruta.Oauth` implementation to dispatch to; overridden in tests via Mox."
   def oauth_module, do: Application.get_env(:meshum_web, :oauth_module, Boruta.Oauth)
 
+  @doc """
+  Authorizes the request, applying the OIDC `prompt`/`max_age` redirections
+  before falling through to the same authorization Boruta performs for
+  plain OAuth.
+  """
   def authorize(%Plug.Conn{} = conn, _params) do
     conn = store_user_return_to(conn)
 
@@ -98,6 +114,8 @@ defmodule MeshumWeb.Controllers.Openid.AuthorizeController do
 
   defp max_age_redirection(%Plug.Conn{} = conn, _resource_owner), do: {:unchanged, conn}
 
+  defp login_expired?(%ResourceOwner{last_login_at: nil}, _max_age), do: false
+
   defp login_expired?(%ResourceOwner{last_login_at: last_login_at}, max_age) do
     now = DateTime.utc_now() |> DateTime.to_unix()
 
@@ -127,12 +145,8 @@ defmodule MeshumWeb.Controllers.Openid.AuthorizeController do
       nil ->
         %ResourceOwner{sub: nil}
 
-      current_user ->
-        %ResourceOwner{
-          sub: to_string(current_user.id),
-          username: current_user.email,
-          last_login_at: current_user.last_login_at
-        }
+      %User{} = current_user ->
+        User.to_resource_owner(current_user)
     end
   end
 

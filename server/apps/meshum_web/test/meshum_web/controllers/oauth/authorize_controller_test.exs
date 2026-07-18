@@ -5,6 +5,7 @@ defmodule MeshumWeb.Controllers.Oauth.AuthorizeControllerTest do
 
   alias Boruta.Oauth.AuthorizeResponse
   alias Boruta.Oauth.Error
+  alias MeshumWeb.Auth.User
   alias MeshumWeb.Controllers.Oauth.AuthorizeController
 
   setup :verify_on_exit!
@@ -17,172 +18,169 @@ defmodule MeshumWeb.Controllers.Oauth.AuthorizeControllerTest do
     {:ok, conn: conn}
   end
 
-  defmodule User do
-    defstruct id: 1, email: "test@test.test"
-  end
-
   describe "MeshumWeb.Controllers.Oauth.AuthorizeController.authorize/2" do
     test "redirects to user login without current_user", %{conn: conn} do
       assert_authorize_redirected_to_login(conn)
     end
+  end
 
-    test "returns an error page", %{conn: conn} do
-      current_user = %User{}
-      conn = assign(conn, :current_user, current_user)
+  # Parametrized across every realistic IdP user shape, normalized through
+  # `User.from_claims/1` exactly as `MeshumWeb.Plugs.Auth.fetch_current_user/2`
+  # does in production — never a hand-written `%User{}` fixture, so these
+  # tests can't silently drift from what production actually builds.
+  for {label, user} <- MeshumWeb.Test.IdpUsers.shapes() do
+    describe "MeshumWeb.Controllers.Oauth.AuthorizeController.authorize/2 with #{label} shape" do
+      test "returns an error page", %{conn: conn} do
+        conn = assign(conn, :current_user, unquote(Macro.escape(User.from_claims(user))))
 
-      error = %Error{
-        status: :bad_request,
-        error: :unknown_error,
-        error_description: "Error description"
-      }
+        error = %Error{
+          status: :bad_request,
+          error: :unknown_error,
+          error_description: "Error description"
+        }
 
-      Boruta.OauthMock
-      |> expect(:authorize, fn conn, _resource_owner, module ->
-        module.authorize_error(conn, error)
-      end)
+        Boruta.OauthMock
+        |> expect(:authorize, fn conn, _resource_owner, module ->
+          module.authorize_error(conn, error)
+        end)
 
-      conn = AuthorizeController.authorize(conn, %{})
+        conn = AuthorizeController.authorize(conn, %{})
 
-      assert html_response(conn, 400) =~ ~r/Error description/
-    end
+        assert html_response(conn, 400) =~ ~r/Error description/
+      end
 
-    test "returns an error in fragment", %{conn: conn} do
-      current_user = %User{}
-      conn = assign(conn, :current_user, current_user)
+      test "returns an error in fragment", %{conn: conn} do
+        conn = assign(conn, :current_user, unquote(Macro.escape(User.from_claims(user))))
 
-      error = %Error{
-        status: :bad_request,
-        error: :unknown_error,
-        error_description: "Error description",
-        format: :fragment,
-        redirect_uri: "http://redirect.uri"
-      }
+        error = %Error{
+          status: :bad_request,
+          error: :unknown_error,
+          error_description: "Error description",
+          format: :fragment,
+          redirect_uri: "http://redirect.uri"
+        }
 
-      Boruta.OauthMock
-      |> expect(:authorize, fn conn, _resource_owner, module ->
-        module.authorize_error(conn, error)
-      end)
+        Boruta.OauthMock
+        |> expect(:authorize, fn conn, _resource_owner, module ->
+          module.authorize_error(conn, error)
+        end)
 
-      conn = AuthorizeController.authorize(conn, %{})
+        conn = AuthorizeController.authorize(conn, %{})
 
-      assert redirected_to(conn) ==
-               "http://redirect.uri#error=unknown_error&error_description=Error+description"
-    end
+        assert redirected_to(conn) ==
+                 "http://redirect.uri#error=unknown_error&error_description=Error+description"
+      end
 
-    test "returns an error in query", %{conn: conn} do
-      current_user = %User{}
-      conn = assign(conn, :current_user, current_user)
+      test "returns an error in query", %{conn: conn} do
+        conn = assign(conn, :current_user, unquote(Macro.escape(User.from_claims(user))))
 
-      error = %Error{
-        status: :bad_request,
-        error: :unknown_error,
-        error_description: "Error description",
-        format: :query,
-        redirect_uri: "http://redirect.uri"
-      }
+        error = %Error{
+          status: :bad_request,
+          error: :unknown_error,
+          error_description: "Error description",
+          format: :query,
+          redirect_uri: "http://redirect.uri"
+        }
 
-      Boruta.OauthMock
-      |> expect(:authorize, fn conn, _resource_owner, module ->
-        module.authorize_error(conn, error)
-      end)
+        Boruta.OauthMock
+        |> expect(:authorize, fn conn, _resource_owner, module ->
+          module.authorize_error(conn, error)
+        end)
 
-      conn = AuthorizeController.authorize(conn, %{})
+        conn = AuthorizeController.authorize(conn, %{})
 
-      assert redirected_to(conn) ==
-               "http://redirect.uri?error=unknown_error&error_description=Error+description"
-    end
+        assert redirected_to(conn) ==
+                 "http://redirect.uri?error=unknown_error&error_description=Error+description"
+      end
 
-    test "redirects with an access_token", %{conn: conn} do
-      current_user = %User{}
-      conn = assign(conn, :current_user, current_user)
+      test "redirects with an access_token", %{conn: conn} do
+        conn = assign(conn, :current_user, unquote(Macro.escape(User.from_claims(user))))
 
-      response = %AuthorizeResponse{
-        type: :token,
-        redirect_uri: "http://redirect.uri",
-        access_token: "access_token",
-        expires_in: 10
-      }
+        response = %AuthorizeResponse{
+          type: :token,
+          redirect_uri: "http://redirect.uri",
+          access_token: "access_token",
+          expires_in: 10
+        }
 
-      Boruta.OauthMock
-      |> expect(:authorize, fn conn, _resource_owner, module ->
-        module.authorize_success(conn, response)
-      end)
+        Boruta.OauthMock
+        |> expect(:authorize, fn conn, _resource_owner, module ->
+          module.authorize_success(conn, response)
+        end)
 
-      conn = AuthorizeController.authorize(conn, %{})
+        conn = AuthorizeController.authorize(conn, %{})
 
-      assert redirected_to(conn) ==
-               "http://redirect.uri#access_token=access_token&expires_in=10"
-    end
+        assert redirected_to(conn) ==
+                 "http://redirect.uri#access_token=access_token&expires_in=10"
+      end
 
-    test "redirects with an access_token and a state", %{conn: conn} do
-      current_user = %User{}
-      conn = assign(conn, :current_user, current_user)
+      test "redirects with an access_token and a state", %{conn: conn} do
+        conn = assign(conn, :current_user, unquote(Macro.escape(User.from_claims(user))))
 
-      response = %AuthorizeResponse{
-        type: :token,
-        redirect_uri: "http://redirect.uri",
-        access_token: "access_token",
-        expires_in: 10,
-        state: "state"
-      }
+        response = %AuthorizeResponse{
+          type: :token,
+          redirect_uri: "http://redirect.uri",
+          access_token: "access_token",
+          expires_in: 10,
+          state: "state"
+        }
 
-      Boruta.OauthMock
-      |> expect(:authorize, fn conn, _resource_owner, module ->
-        module.authorize_success(conn, response)
-      end)
+        Boruta.OauthMock
+        |> expect(:authorize, fn conn, _resource_owner, module ->
+          module.authorize_success(conn, response)
+        end)
 
-      conn = AuthorizeController.authorize(conn, %{})
+        conn = AuthorizeController.authorize(conn, %{})
 
-      %URI{fragment: fragment} = URI.parse(redirected_to(conn))
+        %URI{fragment: fragment} = URI.parse(redirected_to(conn))
 
-      assert URI.decode_query(fragment) == %{
-               "access_token" => "access_token",
-               "expires_in" => "10",
-               "state" => "state"
-             }
-    end
+        assert URI.decode_query(fragment) == %{
+                 "access_token" => "access_token",
+                 "expires_in" => "10",
+                 "state" => "state"
+               }
+      end
 
-    test "redirects with an code", %{conn: conn} do
-      current_user = %User{}
-      conn = assign(conn, :current_user, current_user)
+      test "redirects with an code", %{conn: conn} do
+        conn = assign(conn, :current_user, unquote(Macro.escape(User.from_claims(user))))
 
-      response = %AuthorizeResponse{
-        type: :code,
-        redirect_uri: "http://redirect.uri",
-        code: "code"
-      }
+        response = %AuthorizeResponse{
+          type: :code,
+          redirect_uri: "http://redirect.uri",
+          code: "code"
+        }
 
-      Boruta.OauthMock
-      |> expect(:authorize, fn conn, _resource_owner, module ->
-        module.authorize_success(conn, response)
-      end)
+        Boruta.OauthMock
+        |> expect(:authorize, fn conn, _resource_owner, module ->
+          module.authorize_success(conn, response)
+        end)
 
-      conn = AuthorizeController.authorize(conn, %{})
+        conn = AuthorizeController.authorize(conn, %{})
 
-      assert redirected_to(conn) ==
-               "http://redirect.uri?code=code"
-    end
+        assert redirected_to(conn) ==
+                 "http://redirect.uri?code=code"
+      end
 
-    test "redirects with an code and a state", %{conn: conn} do
-      current_user = %User{}
-      conn = assign(conn, :current_user, current_user)
+      test "redirects with an code and a state", %{conn: conn} do
+        conn = assign(conn, :current_user, unquote(Macro.escape(User.from_claims(user))))
 
-      response = %AuthorizeResponse{
-        type: :code,
-        redirect_uri: "http://redirect.uri",
-        code: "code",
-        state: "state"
-      }
+        response = %AuthorizeResponse{
+          type: :code,
+          redirect_uri: "http://redirect.uri",
+          code: "code",
+          state: "state"
+        }
 
-      Boruta.OauthMock
-      |> expect(:authorize, fn conn, _resource_owner, module ->
-        module.authorize_success(conn, response)
-      end)
+        Boruta.OauthMock
+        |> expect(:authorize, fn conn, _resource_owner, module ->
+          module.authorize_success(conn, response)
+        end)
 
-      conn = AuthorizeController.authorize(conn, %{})
+        conn = AuthorizeController.authorize(conn, %{})
 
-      assert redirected_to(conn) ==
-               "http://redirect.uri?code=code&state=state"
+        assert redirected_to(conn) ==
+                 "http://redirect.uri?code=code&state=state"
+      end
     end
   end
 

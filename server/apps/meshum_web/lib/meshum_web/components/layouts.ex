@@ -31,10 +31,9 @@ defmodule MeshumWeb.Layouts do
 
   attr :page_title, :string, default: nil, doc: "heading shown in the topbar"
 
-  attr :current_user, :map,
+  attr :current_user, MeshumWeb.Auth.User,
     default: nil,
-    doc:
-      "signed-in user's claims (e.g. `%{\"email\" => ..., \"name\" => ...}`), or nil when signed out"
+    doc: "the normalized signed-in `MeshumWeb.Auth.User`, or nil when signed out"
 
   slot :actions, doc: "optional page-level actions rendered on the right of the topbar"
   slot :inner_block, required: true
@@ -156,8 +155,9 @@ defmodule MeshumWeb.Layouts do
 
   @doc false
   # The signed-in user, pinned to the bottom of the nav rail, with a logout
-  # link. `user` is the OIDC claims map from `MeshumWeb.Plugs.Auth`.
-  attr :user, :map, required: true
+  # link. `user` is the normalized `MeshumWeb.Auth.User` from
+  # `MeshumWeb.Plugs.Auth`.
+  attr :user, MeshumWeb.Auth.User, required: true
 
   defp current_user_card(assigns) do
     assigns =
@@ -190,8 +190,8 @@ defmodule MeshumWeb.Layouts do
     """
   end
 
-  defp user_display_name(user) do
-    user["name"] || user["preferred_username"] || user["email"] || "Signed in"
+  defp user_display_name(%MeshumWeb.Auth.User{display_name: display_name}) do
+    display_name || "Signed in"
   end
 
   @doc """

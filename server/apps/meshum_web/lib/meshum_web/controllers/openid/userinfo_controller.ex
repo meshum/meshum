@@ -1,4 +1,10 @@
 defmodule MeshumWeb.Controllers.Openid.UserinfoController do
+  @moduledoc """
+  The OIDC `/openid/userinfo` endpoint: returns the requesting user's claims
+  for a valid access token via `Boruta.Openid.userinfo/2`, or a
+  `401 www-authenticate` challenge when the token is missing/invalid.
+  """
+
   @behaviour Boruta.Openid.UserinfoApplication
 
   use MeshumWeb, :controller
@@ -10,6 +16,7 @@ defmodule MeshumWeb.Controllers.Openid.UserinfoController do
   @doc "The `Boruta.Openid` implementation to dispatch to; overridden in tests via Mox."
   def openid_module, do: Application.get_env(:meshum_web, :openid_module, Boruta.Openid)
 
+  @doc "Returns the claims for the access token carried by the request."
   def userinfo(conn, _params) do
     openid_module().userinfo(conn, __MODULE__)
   end

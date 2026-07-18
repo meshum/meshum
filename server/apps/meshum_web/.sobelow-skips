@@ -1,1 +1,2 @@
 Config.CSP: Missing Content-Security-Policy,lib/meshum_web/router.ex:16,6338A25
+Config.CSRFRoute: CSRF via Action Reuse,lib/meshum_web/router.ex:59,1E39377

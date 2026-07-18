@@ -4,6 +4,7 @@ defmodule MeshumWeb.LayoutsTest do
   import Phoenix.Component
   import Phoenix.LiveViewTest
 
+  alias MeshumWeb.Auth.User
   alias MeshumWeb.Layouts
   alias MeshumWeb.Test.IdpUsers
 
@@ -122,14 +123,16 @@ defmodule MeshumWeb.LayoutsTest do
     end
   end
 
-  # Helper: render the full app shell with a given user. The inner_block
-  # is intentionally empty since these tests only care about the
-  # surrounding chrome — the user card in particular.
+  # Helper: render the full app shell with a given raw IdP claims map (or
+  # `nil` for signed-out), normalized through the same `User.from_claims/1`
+  # that `MeshumWeb.Plugs.Auth.fetch_current_user/2` uses in production. The
+  # inner_block is intentionally empty since these tests only care about
+  # the surrounding chrome — the user card in particular.
   defp render_app_shell(user) do
     renders =
       render_component(&Layouts.app/1, %{
         flash: %{},
-        current_user: user,
+        current_user: user && User.from_claims(user),
         inner_block: [%{inner_block: fn assigns, _ -> ~H"" end}]
       })
 

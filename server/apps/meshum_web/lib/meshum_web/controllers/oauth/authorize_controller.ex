@@ -1,16 +1,24 @@
 defmodule MeshumWeb.Controllers.Oauth.AuthorizeController do
+  @moduledoc """
+  The OAuth 2.0 `/oauth/authorize` endpoint: drives `Boruta.Oauth.authorize/3`
+  through the `Boruta.Oauth.AuthorizeApplication` callbacks, resolving the
+  resource owner from `conn.assigns[:current_user]`
+  (a `MeshumWeb.Auth.User`) or redirecting to login when signed out.
+  """
+
   @behaviour Boruta.Oauth.AuthorizeApplication
 
   use MeshumWeb, :controller
 
   alias Boruta.Oauth.AuthorizeResponse
   alias Boruta.Oauth.Error
-  alias Boruta.Oauth.ResourceOwner
+  alias MeshumWeb.Auth.User
   alias MeshumWeb.Controllers.Oauth.OauthHTML
 
   @doc "The `Boruta.Oauth` implementation to dispatch to; overridden in tests via Mox."
   def oauth_module, do: Application.get_env(:meshum_web, :oauth_module, Boruta.Oauth)
 
+  @doc "Authorizes the request for the signed-in user, or redirects to login."
   def authorize(%Plug.Conn{} = conn, _params) do
     current_user = conn.assigns[:current_user]
     conn = store_user_return_to(conn)
@@ -21,10 +29,10 @@ defmodule MeshumWeb.Controllers.Oauth.AuthorizeController do
     )
   end
 
-  defp authorize_response(conn, %_{} = current_user) do
+  defp authorize_response(conn, %User{} = current_user) do
     conn
     |> oauth_module().authorize(
-      %ResourceOwner{sub: to_string(current_user.id), username: current_user.email},
+      User.to_resource_owner(current_user),
       __MODULE__
     )
   end

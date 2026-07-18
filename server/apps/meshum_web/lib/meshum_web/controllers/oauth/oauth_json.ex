@@ -6,6 +6,11 @@ defmodule MeshumWeb.Controllers.Oauth.OauthJSON do
   alias Boruta.Oauth.IntrospectResponse
   alias Boruta.Oauth.TokenResponse
 
+  @doc """
+  Renders `"token.json"` (a `TokenResponse`, dropping nil fields),
+  `"introspect.json"` (an `IntrospectResponse`, collapsed to `%{active: false}`
+  when inactive), or `"error.json"` (an OAuth error) as a plain map.
+  """
   def render("token.json", %{
         response: %TokenResponse{
           token_type: token_type,

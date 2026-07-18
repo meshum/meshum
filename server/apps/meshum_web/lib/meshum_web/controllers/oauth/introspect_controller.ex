@@ -1,4 +1,11 @@
 defmodule MeshumWeb.Controllers.Oauth.IntrospectController do
+  @moduledoc """
+  The OAuth 2.0 token introspection endpoint (RFC 7662):
+  `Boruta.Oauth.introspect/2` reports whether a token is active, and this
+  controller renders that result as JSON via the
+  `Boruta.Oauth.IntrospectApplication` callbacks.
+  """
+
   @behaviour Boruta.Oauth.IntrospectApplication
 
   use MeshumWeb, :controller
@@ -10,6 +17,7 @@ defmodule MeshumWeb.Controllers.Oauth.IntrospectController do
   @doc "The `Boruta.Oauth` implementation to dispatch to; overridden in tests via Mox."
   def oauth_module, do: Application.get_env(:meshum_web, :oauth_module, Boruta.Oauth)
 
+  @doc "Introspects the token carried by the request."
   def introspect(%Plug.Conn{} = conn, _params) do
     conn |> oauth_module().introspect(__MODULE__)
   end
